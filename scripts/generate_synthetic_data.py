@@ -636,19 +636,15 @@ def generate_audit_logs(session, fake: Faker, users, count: int = 350):
     return logs
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--reset", action="store_true", help="Drop and recreate the schema before seeding")
-    parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducible datasets")
-    args = parser.parse_args()
-
-    random.seed(args.seed)
+def run(seed: int = 42, reset: bool = False) -> None:
+    """Generate the full dataset. Callable from code (e.g. the app bootstrap)."""
+    random.seed(seed)
     fake = Faker()
-    Faker.seed(args.seed)
+    Faker.seed(seed)
 
     import app.database.models  # noqa: F401 — registers every model on Base.metadata
 
-    if args.reset:
+    if reset:
         print("Dropping and recreating schema...")
         Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
@@ -695,6 +691,14 @@ def main() -> None:
         session.close()
 
     print(f"Done. Dataset spans {DATASET_START} to {DATASET_END}.")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--reset", action="store_true", help="Drop and recreate the schema before seeding")
+    parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducible datasets")
+    args = parser.parse_args()
+    run(seed=args.seed, reset=args.reset)
 
 
 if __name__ == "__main__":
