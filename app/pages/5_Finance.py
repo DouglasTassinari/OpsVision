@@ -1,5 +1,15 @@
 """Finance dashboard page."""
+# ruff: noqa: E402  -- sys.path bootstrap below must run before the app.* imports
 from __future__ import annotations
+
+import sys
+from pathlib import Path as _Path
+
+# Streamlit only adds this script's own folder to sys.path, not the project
+# root, so the "app.*" imports below would fail without this.
+_PROJECT_ROOT = str(_Path(__file__).resolve().parents[2])
+if _PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, _PROJECT_ROOT)
 
 from datetime import date, timedelta
 
