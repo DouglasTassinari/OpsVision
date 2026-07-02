@@ -17,26 +17,26 @@ import streamlit as st
 from app.database.base import session_scope
 from app.services.inventory_service import InventoryService
 
-st.title("Inventory")
-st.caption("On-hand stock levels and reorder alerts.")
+st.title("Estoque")
+st.caption("Níveis de estoque disponível e alertas de reposição.")
 
 with session_scope() as session:
     service = InventoryService(session)
     on_hand_rows = service.on_hand_report()
     low_stock = service.low_stock_alert()
 
-    on_hand_df = pd.DataFrame(on_hand_rows, columns=["SKU", "Product", "On Hand"])
+    on_hand_df = pd.DataFrame(on_hand_rows, columns=["SKU", "Produto", "Em Estoque"])
     total_active_skus = len(on_hand_df)
-    total_units = on_hand_df["On Hand"].sum() if not on_hand_df.empty else 0
+    total_units = on_hand_df["Em Estoque"].sum() if not on_hand_df.empty else 0
 
 kpi1, kpi2, kpi3 = st.columns(3)
-kpi1.metric("Active SKUs", total_active_skus)
-kpi2.metric("Low stock products", len(low_stock))
-kpi3.metric("Total units on hand", f"{total_units:,.0f}")
+kpi1.metric("SKUs ativos", total_active_skus)
+kpi2.metric("Produtos com estoque baixo", len(low_stock))
+kpi3.metric("Total de unidades em estoque", f"{total_units:,.0f}")
 
-st.subheader("Top 15 products by on-hand quantity")
+st.subheader("Top 15 produtos por quantidade em estoque")
 if on_hand_df.empty:
-    st.info("No active products found. Run the synthetic data generator first.")
+    st.info("Nenhum produto ativo encontrado. Execute primeiro o gerador de dados sintéticos.")
 else:
-    top15 = on_hand_df.sort_values("On Hand", ascending=False).head(15)
-    st.bar_chart(top15.set_index("SKU")["On Hand"])
+    top15 = on_hand_df.sort_values("Em Estoque", ascending=False).head(15)
+    st.bar_chart(top15.set_index("SKU")["Em Estoque"])

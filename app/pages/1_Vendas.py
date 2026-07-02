@@ -19,38 +19,38 @@ import streamlit as st
 from app.database.base import session_scope
 from app.services.sales_service import SalesService
 
-st.title("Sales")
-st.caption("Revenue, order pipeline and top accounts.")
+st.title("Vendas")
+st.caption("Receita, pipeline de pedidos e principais clientes.")
 
 col1, col2 = st.columns(2)
 default_start = date.today() - timedelta(days=365)
-start = col1.date_input("From", value=default_start)
-end = col2.date_input("To", value=date.today())
+start = col1.date_input("De", value=default_start)
+end = col2.date_input("Até", value=date.today())
 
 with session_scope() as session:
     service = SalesService(session)
     revenue_rows = service.monthly_revenue(start, end)
     top_customers = service.top_customers(start, end, limit=10)
 
-    revenue_df = pd.DataFrame(revenue_rows, columns=["Month", "Net Revenue"])
-    customers_df = pd.DataFrame(top_customers, columns=["Customer", "Total"])
+    revenue_df = pd.DataFrame(revenue_rows, columns=["Mês", "Receita Líquida"])
+    customers_df = pd.DataFrame(top_customers, columns=["Cliente", "Total"])
 
-    total_revenue = revenue_df["Net Revenue"].sum() if not revenue_df.empty else 0
+    total_revenue = revenue_df["Receita Líquida"].sum() if not revenue_df.empty else 0
     active_customers = len(service.active_customers())
 
 kpi1, kpi2, kpi3 = st.columns(3)
-kpi1.metric("Net revenue in period", f"${total_revenue:,.0f}")
-kpi2.metric("Active customers", active_customers)
-kpi3.metric("Months with orders", len(revenue_df))
+kpi1.metric("Receita líquida no período", f"${total_revenue:,.0f}")
+kpi2.metric("Clientes ativos", active_customers)
+kpi3.metric("Meses com pedidos", len(revenue_df))
 
-st.subheader("Revenue by month")
+st.subheader("Receita por mês")
 if revenue_df.empty:
-    st.info("No orders in the selected period. Run the synthetic data generator first.")
+    st.info("Nenhum pedido no período selecionado. Execute primeiro o gerador de dados sintéticos.")
 else:
-    st.line_chart(revenue_df.set_index("Month"))
+    st.line_chart(revenue_df.set_index("Mês"))
 
-st.subheader("Top 10 customers")
+st.subheader("Top 10 clientes")
 if customers_df.empty:
-    st.info("No customer data in the selected period.")
+    st.info("Nenhum dado de cliente no período selecionado.")
 else:
-    st.bar_chart(customers_df.set_index("Customer"))
+    st.bar_chart(customers_df.set_index("Cliente"))

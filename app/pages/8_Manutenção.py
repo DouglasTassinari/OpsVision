@@ -20,23 +20,23 @@ from app.database.base import session_scope
 from app.database.models.maintenance import AssetCriticality, MaintenanceStatus
 from app.services.maintenance_service import MaintenanceService
 
-st.title("Maintenance")
-st.caption("Asset upkeep, request backlog and maintenance cost.")
+st.title("Manutenção")
+st.caption("Conservação de ativos, backlog de solicitações e custo de manutenção.")
 
 col1, col2 = st.columns(2)
 default_start = date.today() - timedelta(days=365)
-start = col1.date_input("From", value=default_start)
-end = col2.date_input("To", value=date.today())
+start = col1.date_input("De", value=default_start)
+end = col2.date_input("Até", value=date.today())
 
 with session_scope() as session:
     service = MaintenanceService(session)
     cost_rows = service.monthly_maintenance_cost(start, end)
     priority_rows = service.open_requests_by_priority()
 
-    cost_df = pd.DataFrame(cost_rows, columns=["Month", "Cost"])
-    priority_df = pd.DataFrame(priority_rows, columns=["Priority", "Open Requests"])
+    cost_df = pd.DataFrame(cost_rows, columns=["Mês", "Custo"])
+    priority_df = pd.DataFrame(priority_rows, columns=["Prioridade", "Solicitações Abertas"])
 
-    total_cost = cost_df["Cost"].sum() if not cost_df.empty else 0
+    total_cost = cost_df["Custo"].sum() if not cost_df.empty else 0
     open_requests = sum(
         len(service.requests.by_status(status))
         for status in (
@@ -48,18 +48,18 @@ with session_scope() as session:
     critical_assets = len(service.assets.by_criticality(AssetCriticality.CRITICAL))
 
 kpi1, kpi2, kpi3 = st.columns(3)
-kpi1.metric("Open requests", open_requests)
-kpi2.metric("Maintenance cost in period", f"${total_cost:,.0f}")
-kpi3.metric("Critical assets", critical_assets)
+kpi1.metric("Solicitações abertas", open_requests)
+kpi2.metric("Custo de manutenção no período", f"${total_cost:,.0f}")
+kpi3.metric("Ativos críticos", critical_assets)
 
-st.subheader("Maintenance cost by month")
+st.subheader("Custo de manutenção por mês")
 if cost_df.empty:
-    st.info("No maintenance logs in the selected period. Run the synthetic data generator first.")
+    st.info("Nenhum registro de manutenção no período selecionado. Execute primeiro o gerador de dados sintéticos.")
 else:
-    st.line_chart(cost_df.set_index("Month"))
+    st.line_chart(cost_df.set_index("Mês"))
 
-st.subheader("Open requests by priority")
+st.subheader("Solicitações abertas por prioridade")
 if priority_df.empty:
-    st.info("No open maintenance requests.")
+    st.info("Nenhuma solicitação de manutenção aberta.")
 else:
-    st.bar_chart(priority_df.set_index("Priority"))
+    st.bar_chart(priority_df.set_index("Prioridade"))

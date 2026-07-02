@@ -19,8 +19,8 @@ import streamlit as st
 from app.database.base import session_scope
 from app.services.projects_service import ProjectsService
 
-st.title("Projects")
-st.caption("Delivery status, task completion and upcoming milestones.")
+st.title("Projetos")
+st.caption("Status de entrega, conclusão de tarefas e próximos marcos.")
 
 with session_scope() as session:
     service = ProjectsService(session)
@@ -34,12 +34,12 @@ with session_scope() as session:
     avg_completion = health_df["completion_rate"].mean() if not health_df.empty else 0
 
 kpi1, kpi2, kpi3 = st.columns(3)
-kpi1.metric("Active projects", active_count)
-kpi2.metric("Avg completion rate", f"{avg_completion:,.1f}%")
-kpi3.metric("Milestones due in 30 days", len(upcoming_30d))
+kpi1.metric("Projetos ativos", active_count)
+kpi2.metric("Taxa média de conclusão", f"{avg_completion:,.1f}%")
+kpi3.metric("Marcos com vencimento em 30 dias", len(upcoming_30d))
 
-st.subheader("Completion rate by project")
+st.subheader("Taxa de conclusão por projeto")
 if health_df.empty:
-    st.info("No active projects. Run the synthetic data generator first.")
+    st.info("Nenhum projeto ativo. Execute primeiro o gerador de dados sintéticos.")
 else:
     st.bar_chart(health_df.set_index("project")["completion_rate"])

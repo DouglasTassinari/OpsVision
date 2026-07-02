@@ -19,13 +19,13 @@ import streamlit as st
 from app.database.base import session_scope
 from app.services.people_service import PeopleService
 
-st.title("People")
-st.caption("Headcount and time off utilization.")
+st.title("Pessoas")
+st.caption("Quadro de funcionários e utilização de folgas.")
 
 col1, col2 = st.columns(2)
 default_start = date.today() - timedelta(days=365)
-start = col1.date_input("From", value=default_start)
-end = col2.date_input("To", value=date.today())
+start = col1.date_input("De", value=default_start)
+end = col2.date_input("Até", value=date.today())
 
 with session_scope() as session:
     service = PeopleService(session)
@@ -33,19 +33,19 @@ with session_scope() as session:
     utilization_rows = service.time_off_utilization(start, end)
     pending_count = len(service.time_off.pending_requests())
 
-    headcount_df = pd.DataFrame(headcount_rows, columns=["Department", "Active Employees"])
-    utilization_df = pd.DataFrame(utilization_rows, columns=["Month", "Approved Days"])
+    headcount_df = pd.DataFrame(headcount_rows, columns=["Departamento", "Funcionários Ativos"])
+    utilization_df = pd.DataFrame(utilization_rows, columns=["Mês", "Dias Aprovados"])
 
-    active_headcount = int(headcount_df["Active Employees"].sum()) if not headcount_df.empty else 0
-    approved_days_in_period = int(utilization_df["Approved Days"].sum()) if not utilization_df.empty else 0
+    active_headcount = int(headcount_df["Funcionários Ativos"].sum()) if not headcount_df.empty else 0
+    approved_days_in_period = int(utilization_df["Dias Aprovados"].sum()) if not utilization_df.empty else 0
 
 kpi1, kpi2, kpi3 = st.columns(3)
-kpi1.metric("Active headcount", active_headcount)
-kpi2.metric("Pending time off requests", pending_count)
-kpi3.metric("Approved days in period", approved_days_in_period)
+kpi1.metric("Quadro de funcionários ativo", active_headcount)
+kpi2.metric("Solicitações de folga pendentes", pending_count)
+kpi3.metric("Dias aprovados no período", approved_days_in_period)
 
-st.subheader("Headcount by department")
+st.subheader("Quadro de funcionários por departamento")
 if headcount_df.empty:
-    st.info("No active employees yet. Run the synthetic data generator first.")
+    st.info("Nenhum funcionário ativo ainda. Execute primeiro o gerador de dados sintéticos.")
 else:
-    st.bar_chart(headcount_df.set_index("Department"))
+    st.bar_chart(headcount_df.set_index("Departamento"))
