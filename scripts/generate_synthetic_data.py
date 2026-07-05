@@ -79,6 +79,11 @@ from app.database.models.quality import (
 )
 from app.database.models.sales import Customer, CustomerSegment, OrderStatus, SalesOrder, SalesOrderItem
 
+# Bump whenever the generated dataset changes shape (volumes, salaries,
+# accounting rules...): deployments with a database seeded by an older
+# version reseed automatically on boot (see app/core/bootstrap.py).
+DATASET_VERSION = 2
+
 DATASET_START = date(2023, 1, 1)
 DATASET_END = date.today()
 HIRE_WINDOW_START = date(2018, 1, 1)
@@ -632,6 +637,20 @@ def generate_audit_logs(session, fake: Faker, users, count: int = 350):
     return logs
 
 
+def _write_dataset_version(session) -> None:
+    """Record DATASET_VERSION so the bootstrap can detect stale datasets."""
+    from sqlalchemy import text
+
+    session.execute(
+        text("CREATE TABLE IF NOT EXISTS dataset_meta (key VARCHAR PRIMARY KEY, value VARCHAR)")
+    )
+    session.execute(text("DELETE FROM dataset_meta WHERE key = 'dataset_version'"))
+    session.execute(
+        text("INSERT INTO dataset_meta (key, value) VALUES ('dataset_version', :v)"),
+        {"v": str(DATASET_VERSION)},
+    )
+
+
 def run(seed: int = 42, reset: bool = False) -> None:
     """Generate the full dataset. Callable from code (e.g. the app bootstrap)."""
     random.seed(seed)
@@ -679,6 +698,7 @@ def run(seed: int = 42, reset: bool = False) -> None:
         print("Generating audit trail...")
         generate_audit_logs(session, fake, users)
 
+        _write_dataset_version(session)
         session.commit()
     except Exception:
         session.rollback()
