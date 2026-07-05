@@ -17,8 +17,11 @@ import pandas as pd
 import streamlit as st
 
 from app.core.bootstrap import ensure_demo_data_once
+from app.core.branding import CHART_COLOR, apply_branding
 from app.database.base import session_scope
 from app.services.projects_service import ProjectsService
+
+apply_branding("Projetos")
 
 ensure_demo_data_once()
 
@@ -45,4 +48,4 @@ st.subheader("Taxa de conclusão por projeto")
 if health_df.empty:
     st.info("Nenhum projeto ativo. Execute primeiro o gerador de dados sintéticos.")
 else:
-    st.bar_chart(health_df.set_index("project")["completion_rate"])
+    st.bar_chart(health_df.set_index("project")["completion_rate"], color=CHART_COLOR)

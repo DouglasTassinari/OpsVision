@@ -17,9 +17,12 @@ import pandas as pd
 import streamlit as st
 
 from app.core.bootstrap import ensure_demo_data_once
+from app.core.branding import CHART_COLOR, apply_branding
 from app.core.formatting import format_brl
 from app.database.base import session_scope
 from app.services.purchasing_service import PurchasingService
+
+apply_branding("Compras")
 
 ensure_demo_data_once()
 
@@ -55,10 +58,10 @@ st.subheader("Gastos por mês")
 if spend_df.empty:
     st.info("Nenhum pedido no período selecionado. Execute primeiro o gerador de dados sintéticos.")
 else:
-    st.line_chart(spend_df.set_index("Mês"))
+    st.line_chart(spend_df.set_index("Mês"), color=CHART_COLOR)
 
 st.subheader("Top 10 fornecedores")
 if suppliers_df.empty:
     st.info("Nenhum dado de fornecedor no período selecionado.")
 else:
-    st.bar_chart(suppliers_df.set_index("Fornecedor"))
+    st.bar_chart(suppliers_df.set_index("Fornecedor"), color=CHART_COLOR)

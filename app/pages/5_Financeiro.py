@@ -17,9 +17,12 @@ import pandas as pd
 import streamlit as st
 
 from app.core.bootstrap import ensure_demo_data_once
+from app.core.branding import CHART_COLOR, apply_branding
 from app.core.formatting import format_brl
 from app.database.base import session_scope
 from app.services.finance_service import FinanceService
+
+apply_branding("Financeiro")
 
 ensure_demo_data_once()
 
@@ -48,4 +51,4 @@ st.subheader("Fluxo de caixa líquido por mês")
 if cashflow_df.empty:
     st.info("Nenhuma transação no período selecionado. Execute primeiro o gerador de dados sintéticos.")
 else:
-    st.line_chart(cashflow_df.set_index("Mês"))
+    st.line_chart(cashflow_df.set_index("Mês"), color=CHART_COLOR)

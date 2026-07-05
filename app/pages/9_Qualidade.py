@@ -17,8 +17,11 @@ import pandas as pd
 import streamlit as st
 
 from app.core.bootstrap import ensure_demo_data_once
+from app.core.branding import CHART_COLOR, apply_branding
 from app.database.base import session_scope
 from app.services.quality_service import QualityService
+
+apply_branding("Qualidade")
 
 ensure_demo_data_once()
 
@@ -51,10 +54,10 @@ st.subheader("Taxa de defeito por mês")
 if defect_rate_df.empty:
     st.info("Nenhuma inspeção no período selecionado. Execute primeiro o gerador de dados sintéticos.")
 else:
-    st.line_chart(defect_rate_df.set_index("Mês"))
+    st.line_chart(defect_rate_df.set_index("Mês"), color=CHART_COLOR)
 
 st.subheader("Não conformidades abertas por severidade")
 if severity_df.empty:
     st.info("Nenhuma não conformidade aberta.")
 else:
-    st.bar_chart(severity_df.set_index("Severidade"))
+    st.bar_chart(severity_df.set_index("Severidade"), color=CHART_COLOR)

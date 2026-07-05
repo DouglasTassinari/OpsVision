@@ -17,15 +17,16 @@ import pandas as pd
 import streamlit as st
 
 from app.core.bootstrap import ensure_demo_data_once
+from app.core.branding import CHART_COLOR, LOGO_FULL, apply_branding
 from app.core.formatting import format_brl
 from app.database.base import session_scope
 from app.services.analytics_service import AnalyticsService
 
-st.set_page_config(page_title="OpsVision", page_icon="📊", layout="wide")
+apply_branding("Dashboard")
 
 ensure_demo_data_once()
 
-st.title("OpsVision")
+st.image(LOGO_FULL, width=300)
 st.caption("Plataforma de Inteligência Operacional Empresarial — visão executiva.")
 
 col1, col2 = st.columns(2)
@@ -64,7 +65,7 @@ with chart_col1:
     if revenue_df.empty:
         st.info("Ainda não há dados de vendas. Execute primeiro o gerador de dados sintéticos.")
     else:
-        st.line_chart(revenue_df.set_index("Mês"))
+        st.line_chart(revenue_df.set_index("Mês"), color=CHART_COLOR)
 
 with chart_col2:
     st.subheader("Fluxo de caixa líquido por mês")
@@ -72,7 +73,7 @@ with chart_col2:
     if cashflow_df.empty:
         st.info("Ainda não há dados financeiros. Execute primeiro o gerador de dados sintéticos.")
     else:
-        st.line_chart(cashflow_df.set_index("Mês"))
+        st.line_chart(cashflow_df.set_index("Mês"), color=CHART_COLOR)
 
 st.divider()
 st.caption(

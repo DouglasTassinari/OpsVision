@@ -17,8 +17,11 @@ import pandas as pd
 import streamlit as st
 
 from app.core.bootstrap import ensure_demo_data_once
+from app.core.branding import CHART_COLOR, apply_branding
 from app.database.base import session_scope
 from app.services.production_service import ProductionService
+
+apply_branding("Produção")
 
 ensure_demo_data_once()
 
@@ -52,10 +55,10 @@ st.subheader("Rendimento por linha de produção")
 if yield_df.empty:
     st.info("Nenhuma ordem de produção concluída no período selecionado. Execute primeiro o gerador de dados sintéticos.")
 else:
-    st.bar_chart(yield_df.set_index("Linha de Produção"))
+    st.bar_chart(yield_df.set_index("Linha de Produção"), color=CHART_COLOR)
 
 st.subheader("Refugo por mês")
 if scrap_df.empty:
     st.info("Nenhum dado de ordem de produção no período selecionado.")
 else:
-    st.line_chart(scrap_df.set_index("Mês"))
+    st.line_chart(scrap_df.set_index("Mês"), color=CHART_COLOR)

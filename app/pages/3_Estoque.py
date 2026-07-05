@@ -15,8 +15,11 @@ import pandas as pd
 import streamlit as st
 
 from app.core.bootstrap import ensure_demo_data_once
+from app.core.branding import CHART_COLOR, apply_branding
 from app.database.base import session_scope
 from app.services.inventory_service import InventoryService
+
+apply_branding("Estoque")
 
 ensure_demo_data_once()
 
@@ -42,4 +45,4 @@ if on_hand_df.empty:
     st.info("Nenhum produto ativo encontrado. Execute primeiro o gerador de dados sintéticos.")
 else:
     top15 = on_hand_df.sort_values("Em Estoque", ascending=False).head(15)
-    st.bar_chart(top15.set_index("SKU")["Em Estoque"])
+    st.bar_chart(top15.set_index("SKU")["Em Estoque"], color=CHART_COLOR)

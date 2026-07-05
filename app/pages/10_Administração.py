@@ -15,8 +15,11 @@ import pandas as pd
 import streamlit as st
 
 from app.core.bootstrap import ensure_demo_data_once
+from app.core.branding import apply_branding
 from app.database.base import session_scope
 from app.services.administration_service import AdministrationService
+
+apply_branding("Administração")
 
 ensure_demo_data_once()
 

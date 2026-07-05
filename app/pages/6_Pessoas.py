@@ -17,8 +17,11 @@ import pandas as pd
 import streamlit as st
 
 from app.core.bootstrap import ensure_demo_data_once
+from app.core.branding import CHART_COLOR, apply_branding
 from app.database.base import session_scope
 from app.services.people_service import PeopleService
+
+apply_branding("Pessoas")
 
 ensure_demo_data_once()
 
@@ -51,4 +54,4 @@ st.subheader("Quadro de funcionários por departamento")
 if headcount_df.empty:
     st.info("Nenhum funcionário ativo ainda. Execute primeiro o gerador de dados sintéticos.")
 else:
-    st.bar_chart(headcount_df.set_index("Departamento"))
+    st.bar_chart(headcount_df.set_index("Departamento"), color=CHART_COLOR)

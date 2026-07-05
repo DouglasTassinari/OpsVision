@@ -17,10 +17,13 @@ import pandas as pd
 import streamlit as st
 
 from app.core.bootstrap import ensure_demo_data_once
+from app.core.branding import CHART_COLOR, apply_branding
 from app.core.formatting import format_brl
 from app.database.base import session_scope
 from app.database.models.maintenance import AssetCriticality, MaintenanceStatus
 from app.services.maintenance_service import MaintenanceService
+
+apply_branding("Manutenção")
 
 ensure_demo_data_once()
 
@@ -60,10 +63,10 @@ st.subheader("Custo de manutenção por mês")
 if cost_df.empty:
     st.info("Nenhum registro de manutenção no período selecionado. Execute primeiro o gerador de dados sintéticos.")
 else:
-    st.line_chart(cost_df.set_index("Mês"))
+    st.line_chart(cost_df.set_index("Mês"), color=CHART_COLOR)
 
 st.subheader("Solicitações abertas por prioridade")
 if priority_df.empty:
     st.info("Nenhuma solicitação de manutenção aberta.")
 else:
-    st.bar_chart(priority_df.set_index("Prioridade"))
+    st.bar_chart(priority_df.set_index("Prioridade"), color=CHART_COLOR)

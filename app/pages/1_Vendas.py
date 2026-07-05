@@ -17,9 +17,12 @@ import pandas as pd
 import streamlit as st
 
 from app.core.bootstrap import ensure_demo_data_once
+from app.core.branding import CHART_COLOR, apply_branding
 from app.core.formatting import format_brl
 from app.database.base import session_scope
 from app.services.sales_service import SalesService
+
+apply_branding("Vendas")
 
 ensure_demo_data_once()
 
@@ -51,10 +54,10 @@ st.subheader("Receita por mês")
 if revenue_df.empty:
     st.info("Nenhum pedido no período selecionado. Execute primeiro o gerador de dados sintéticos.")
 else:
-    st.line_chart(revenue_df.set_index("Mês"))
+    st.line_chart(revenue_df.set_index("Mês"), color=CHART_COLOR)
 
 st.subheader("Top 10 clientes")
 if customers_df.empty:
     st.info("Nenhum dado de cliente no período selecionado.")
 else:
-    st.bar_chart(customers_df.set_index("Cliente"))
+    st.bar_chart(customers_df.set_index("Cliente"), color=CHART_COLOR)
