@@ -1,3 +1,5 @@
+# dataset v3 (pt-BR) — mudanças neste arquivo forçam rebuild completo no
+# Streamlit Cloud; pushes só de código não reiniciam o processo em execução.
 streamlit>=1.58,<2.0
 SQLAlchemy>=2.0,<3.0
 pandas>=3.0,<4.0
