@@ -57,6 +57,29 @@ class StockMovementRepository(BaseRepository[StockMovement]):
         )
         return [(sku, name, int(on_hand)) for sku, name, on_hand in self.session.execute(stmt).all()]
 
+    def on_hand_by_category(self) -> list[tuple[str, str, int]]:
+        """(category value, product name, on_hand) for active products with stock > 0."""
+        signed_quantity = case(
+            (StockMovement.movement_type == MovementType.INBOUND, StockMovement.quantity),
+            (StockMovement.movement_type == MovementType.OUTBOUND, -StockMovement.quantity),
+            (StockMovement.movement_type == MovementType.ADJUSTMENT, StockMovement.quantity),
+            else_=0,
+        )
+        on_hand = func.coalesce(func.sum(signed_quantity), 0)
+        stmt = (
+            select(Product.category, Product.name, on_hand.label("on_hand"))
+            .select_from(Product)
+            .outerjoin(StockMovement, StockMovement.product_id == Product.id)
+            .where(Product.active.is_(True))
+            .group_by(Product.id)
+            .having(on_hand > 0)
+            .order_by(Product.category, on_hand.desc())
+        )
+        return [
+            (category.value, name, int(units))
+            for category, name, units in self.session.execute(stmt).all()
+        ]
+
     def low_stock_products(self) -> list[Product]:
         """Active products whose computed on-hand is below their reorder point."""
         signed_quantity = case(

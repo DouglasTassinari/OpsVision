@@ -106,5 +106,9 @@ class ProjectsService:
             for project in active
         ]
 
+    @track("projects.status_breakdown")
+    def status_breakdown(self) -> list[tuple[str, int]]:
+        return self.projects.count_by_status()
+
     def upcoming_milestones(self, as_of: date, limit: int = 10):
         return self.milestones.upcoming_milestones(as_of, limit)

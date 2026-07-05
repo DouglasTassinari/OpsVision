@@ -54,6 +54,20 @@ class SalesOrderRepository(BaseRepository[SalesOrder]):
             for month, gross, avg_discount in rows
         ]
 
+    def revenue_by_segment(self, start: date, end: date) -> list[tuple[str, float]]:
+        """Gross revenue grouped by customer segment (enum value, total)."""
+        total = func.sum(SalesOrderItem.quantity * SalesOrderItem.unit_price)
+        stmt = (
+            select(Customer.segment, total.label("total"))
+            .join(SalesOrder, SalesOrder.customer_id == Customer.id)
+            .join(SalesOrderItem, SalesOrderItem.order_id == SalesOrder.id)
+            .where(SalesOrder.order_date >= start, SalesOrder.order_date <= end)
+            .where(SalesOrder.status != OrderStatus.CANCELLED)
+            .group_by(Customer.segment)
+            .order_by(total.desc())
+        )
+        return [(segment.value, round(float(amount), 2)) for segment, amount in self.session.execute(stmt).all()]
+
     def top_customers(self, start: date, end: date, limit: int = 10) -> list[tuple[str, float]]:
         stmt = (
             select(

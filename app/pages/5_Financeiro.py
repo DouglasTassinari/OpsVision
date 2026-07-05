@@ -13,11 +13,11 @@ if _PROJECT_ROOT not in sys.path:
 
 from datetime import date, timedelta
 
-import pandas as pd
 import streamlit as st
 
+from app.core import charts
 from app.core.bootstrap import ensure_demo_data_once
-from app.core.branding import CHART_COLOR, apply_branding
+from app.core.branding import apply_branding
 from app.core.formatting import format_brl
 from app.database.base import session_scope
 from app.services.finance_service import FinanceService
@@ -25,6 +25,13 @@ from app.services.finance_service import FinanceService
 apply_branding("Financeiro")
 
 ensure_demo_data_once()
+
+DIRECOES = {"receivable": "A receber", "payable": "A pagar"}
+STATUS_FATURA = {
+    "paid": ("Pagas", charts.POSITIVO),
+    "open": ("Abertas", "#A7A7AD"),
+    "overdue": ("Vencidas", charts.NEGATIVO),
+}
 
 st.title("Financeiro")
 st.caption("Contas a receber, contas a pagar e posição de caixa.")
@@ -38,17 +45,35 @@ with session_scope() as session:
     service = FinanceService(session)
     summary = service.outstanding_summary()
     cashflow_rows = service.cash_position(start, end)
+    breakdown = service.invoice_breakdown()
 
-    cashflow_df = pd.DataFrame(cashflow_rows, columns=["Mês", "Fluxo de Caixa Líquido"])
-    net_cashflow_total = cashflow_df["Fluxo de Caixa Líquido"].sum() if not cashflow_df.empty else 0
+net_cashflow_total = sum(v for _, v in cashflow_rows)
 
 kpi1, kpi2, kpi3 = st.columns(3)
 kpi1.metric("Contas a receber pendentes", format_brl(summary["receivables"]))
 kpi2.metric("Contas a pagar pendentes", format_brl(summary["payables"]))
 kpi3.metric("Fluxo de caixa líquido no período", format_brl(net_cashflow_total))
 
-st.subheader("Fluxo de caixa líquido por mês")
-if cashflow_df.empty:
-    st.info("Nenhuma transação no período selecionado. Execute primeiro o gerador de dados sintéticos.")
+st.subheader("O caixa está saudável?")
+if not cashflow_rows:
+    st.info("Nenhuma transação no período selecionado.")
 else:
-    st.line_chart(cashflow_df.set_index("Mês"), color=CHART_COLOR)
+    months, values = zip(*cashflow_rows)
+    charts.render(charts.cashflow(months, values))
+    st.caption(
+        "Barras verdes = meses em que entrou mais do que saiu; vermelhas = o contrário. "
+        "A linha pontilhada mostra o saldo acumulado no período."
+    )
+
+st.subheader("Faturas por situação")
+if not breakdown:
+    st.info("Nenhuma fatura registrada ainda.")
+else:
+    amounts = {(direction, status): total for direction, status, total in breakdown}
+    directions = ["receivable", "payable"]
+    series = {
+        label: ([amounts.get((d, key), 0) for d in directions], color)
+        for key, (label, color) in STATUS_FATURA.items()
+    }
+    charts.render(charts.stacked_hbar([DIRECOES[d] for d in directions], series, money=True))
+    st.caption("Verde já virou caixa; cinza aguarda vencimento; vermelho está vencido e exige cobrança ou pagamento imediato.")

@@ -57,6 +57,20 @@ class PurchaseOrderRepository(BaseRepository[PurchaseOrder]):
         rows = self.session.execute(stmt).all()
         return [(month, round(float(total or 0), 2)) for month, total in rows]
 
+    def spend_by_supplier_category(self, start: date, end: date) -> list[tuple[str, float]]:
+        """Spend grouped by supplier category (enum value, total)."""
+        total = func.sum(PurchaseOrderItem.quantity * PurchaseOrderItem.unit_cost)
+        stmt = (
+            select(Supplier.category, total.label("total"))
+            .join(PurchaseOrder, PurchaseOrder.supplier_id == Supplier.id)
+            .join(PurchaseOrderItem, PurchaseOrderItem.purchase_order_id == PurchaseOrder.id)
+            .where(PurchaseOrder.order_date >= start, PurchaseOrder.order_date <= end)
+            .where(PurchaseOrder.status != PurchaseOrderStatus.CANCELLED)
+            .group_by(Supplier.category)
+            .order_by(total.desc())
+        )
+        return [(category.value, round(float(amount), 2)) for category, amount in self.session.execute(stmt).all()]
+
     def top_suppliers(self, start: date, end: date, limit: int = 10) -> list[tuple[str, float]]:
         stmt = (
             select(

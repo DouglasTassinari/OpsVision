@@ -20,6 +20,15 @@ class ProjectRepository(BaseRepository[Project]):
         stmt = select(Project).where(Project.start_date >= start, Project.start_date <= end)
         return list(self.session.execute(stmt).scalars().all())
 
+    def count_by_status(self) -> list[tuple[str, int]]:
+        """Project count grouped by status (enum value, count)."""
+        stmt = (
+            select(Project.status, func.count().label("total"))
+            .group_by(Project.status)
+            .order_by(func.count().desc())
+        )
+        return [(status.value, int(count)) for status, count in self.session.execute(stmt).all()]
+
 
 class TaskRepository(BaseRepository[Task]):
     model = Task

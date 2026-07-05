@@ -68,5 +68,17 @@ class AnalyticsService:
     def revenue_trend(self, start: date, end: date) -> list[tuple[str, float]]:
         return self.sales.monthly_revenue(start, end)
 
+    def spend_trend(self, start: date, end: date) -> list[tuple[str, float]]:
+        return self.purchasing.monthly_spend(start, end)
+
     def cashflow_trend(self, start: date, end: date) -> list[tuple[str, float]]:
         return self.finance.cash_position(start, end)
+
+    @track("analytics.period_totals")
+    def period_totals(self, start: date, end: date) -> dict:
+        """Totais financeiros do período, usados para comparações entre janelas."""
+        return {
+            "revenue": round(sum(v for _, v in self.sales.monthly_revenue(start, end)), 2),
+            "spend": round(sum(v for _, v in self.purchasing.monthly_spend(start, end)), 2),
+            "cashflow": round(sum(v for _, v in self.finance.cash_position(start, end)), 2),
+        }

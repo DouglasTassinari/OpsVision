@@ -134,3 +134,50 @@ def test_scrap_by_month_excludes_cancelled(session, location, product, productio
 def test_production_line_repository_get(session, location, production_line):
     repo = ProductionLineRepository(session)
     assert repo.get(production_line.id).code == "LINE-1"
+
+
+def test_count_by_status_groups_within_period(session, location, product, production_line):
+    session.add_all(
+        [
+            WorkOrder(
+                order_number="WO-20",
+                product_id=product.id,
+                production_line_id=production_line.id,
+                status=WorkOrderStatus.COMPLETED,
+                planned_quantity=10,
+                produced_quantity=10,
+                scheduled_date=date(2026, 4, 1),
+            ),
+            WorkOrder(
+                order_number="WO-21",
+                product_id=product.id,
+                production_line_id=production_line.id,
+                status=WorkOrderStatus.COMPLETED,
+                planned_quantity=10,
+                produced_quantity=9,
+                scheduled_date=date(2026, 4, 2),
+            ),
+            WorkOrder(
+                order_number="WO-22",
+                product_id=product.id,
+                production_line_id=production_line.id,
+                status=WorkOrderStatus.PLANNED,
+                planned_quantity=10,
+                scheduled_date=date(2026, 4, 3),
+            ),
+            WorkOrder(
+                order_number="WO-23",
+                product_id=product.id,
+                production_line_id=production_line.id,
+                status=WorkOrderStatus.PLANNED,
+                planned_quantity=10,
+                scheduled_date=date(2026, 5, 10),
+            ),
+        ]
+    )
+    session.flush()
+
+    repo = WorkOrderRepository(session)
+    rows = repo.count_by_status(date(2026, 4, 1), date(2026, 4, 30))
+
+    assert rows == [("completed", 2), ("planned", 1)]

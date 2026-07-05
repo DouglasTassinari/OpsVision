@@ -135,3 +135,51 @@ def test_low_stock_products_excludes_products_above_reorder_point(session, locat
     low_stock = repo.low_stock_products()
 
     assert low_stock == []
+
+
+def test_on_hand_by_category_groups_and_skips_zero_stock(session, location, product):
+    warehouse = _make_warehouse(session, location)
+    raw = Product(
+        sku="SKU-0002",
+        name="Steel Coil",
+        category=ProductCategory.RAW_MATERIAL,
+        unit_cost=5.0,
+        unit_price=8.0,
+        reorder_point=10,
+    )
+    empty = Product(
+        sku="SKU-0003",
+        name="Ghost",
+        category=ProductCategory.PACKAGING,
+        unit_cost=1.0,
+        unit_price=2.0,
+        reorder_point=5,
+    )
+    session.add_all([raw, empty])
+    session.flush()
+    session.add_all(
+        [
+            StockMovement(
+                product_id=product.id,
+                warehouse_id=warehouse.id,
+                movement_type=MovementType.INBOUND,
+                quantity=30,
+                movement_date=date(2026, 1, 5),
+            ),
+            StockMovement(
+                product_id=raw.id,
+                warehouse_id=warehouse.id,
+                movement_type=MovementType.INBOUND,
+                quantity=12,
+                movement_date=date(2026, 1, 6),
+            ),
+        ]
+    )
+    session.flush()
+
+    repo = StockMovementRepository(session)
+    rows = repo.on_hand_by_category()
+
+    assert ("finished_good", "Sample Product", 30) in rows
+    assert ("raw_material", "Steel Coil", 12) in rows
+    assert all(name != "Ghost" for _, name, _ in rows)

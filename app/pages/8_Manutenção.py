@@ -13,11 +13,11 @@ if _PROJECT_ROOT not in sys.path:
 
 from datetime import date, timedelta
 
-import pandas as pd
 import streamlit as st
 
+from app.core import charts
 from app.core.bootstrap import ensure_demo_data_once
-from app.core.branding import CHART_COLOR, apply_branding
+from app.core.branding import apply_branding
 from app.core.formatting import format_brl
 from app.database.base import session_scope
 from app.database.models.maintenance import AssetCriticality, MaintenanceStatus
@@ -26,6 +26,13 @@ from app.services.maintenance_service import MaintenanceService
 apply_branding("Manutenção")
 
 ensure_demo_data_once()
+
+PRIORIDADES = {
+    "urgent": ("Urgente", charts.NEGATIVO),
+    "high": ("Alta", charts.BORDO_CLARO),
+    "medium": ("Média", "#A7A7AD"),
+    "low": ("Baixa", "#6E6E76"),
+}
 
 st.title("Manutenção")
 st.caption("Conservação de ativos, backlog de solicitações e custo de manutenção.")
@@ -40,10 +47,7 @@ with session_scope() as session:
     cost_rows = service.monthly_maintenance_cost(start, end)
     priority_rows = service.open_requests_by_priority()
 
-    cost_df = pd.DataFrame(cost_rows, columns=["Mês", "Custo"])
-    priority_df = pd.DataFrame(priority_rows, columns=["Prioridade", "Solicitações Abertas"])
-
-    total_cost = cost_df["Custo"].sum() if not cost_df.empty else 0
+    total_cost = sum(v for _, v in cost_rows)
     open_requests = sum(
         len(service.requests.by_status(status))
         for status in (
@@ -59,14 +63,30 @@ kpi1.metric("Solicitações abertas", open_requests)
 kpi2.metric("Custo de manutenção no período", format_brl(total_cost))
 kpi3.metric("Ativos críticos", critical_assets)
 
-st.subheader("Custo de manutenção por mês")
-if cost_df.empty:
-    st.info("Nenhum registro de manutenção no período selecionado. Execute primeiro o gerador de dados sintéticos.")
-else:
-    st.line_chart(cost_df.set_index("Mês"), color=CHART_COLOR)
+cost_col, backlog_col = st.columns([3, 2])
+with cost_col:
+    st.subheader("Custo de manutenção por mês")
+    if not cost_rows:
+        st.info("Nenhum registro de manutenção no período selecionado.")
+    else:
+        months, values = zip(*cost_rows)
+        charts.render(charts.area(months, values, money=True))
+        st.caption("Gasto mensal com manutenção — alta contínua pode indicar ativos em fim de vida.")
 
-st.subheader("Solicitações abertas por prioridade")
-if priority_df.empty:
-    st.info("Nenhuma solicitação de manutenção aberta.")
-else:
-    st.bar_chart(priority_df.set_index("Prioridade"), color=CHART_COLOR)
+with backlog_col:
+    st.subheader("Backlog por prioridade")
+    if not priority_rows:
+        st.info("Nenhuma solicitação de manutenção aberta.")
+    else:
+        by_priority = dict(priority_rows)
+        items = [
+            (label, by_priority[key], color)
+            for key, (label, color) in PRIORIDADES.items()
+            if key in by_priority
+        ]
+        charts.render(
+            charts.hbar(
+                [i[0] for i in items], [i[1] for i in items], colors=[i[2] for i in items]
+            )
+        )
+        st.caption("Solicitações abertas: vermelho = urgente, deve ser tratado primeiro.")

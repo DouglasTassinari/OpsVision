@@ -13,11 +13,11 @@ if _PROJECT_ROOT not in sys.path:
 
 from datetime import date, timedelta
 
-import pandas as pd
 import streamlit as st
 
+from app.core import charts
 from app.core.bootstrap import ensure_demo_data_once
-from app.core.branding import CHART_COLOR, apply_branding
+from app.core.branding import apply_branding
 from app.core.formatting import format_brl
 from app.database.base import session_scope
 from app.services.purchasing_service import PurchasingService
@@ -25,6 +25,13 @@ from app.services.purchasing_service import PurchasingService
 apply_branding("Compras")
 
 ensure_demo_data_once()
+
+CATEGORIAS = {
+    "raw_material": "Matéria-prima",
+    "services": "Serviços",
+    "equipment": "Equipamentos",
+    "packaging": "Embalagens",
+}
 
 st.title("Compras")
 st.caption("Gastos, pipeline de pedidos e principais fornecedores.")
@@ -38,30 +45,50 @@ with session_scope() as session:
     service = PurchasingService(session)
     spend_rows = service.monthly_spend(start, end)
     top_suppliers = service.top_suppliers(start, end, limit=10)
+    category_rows = service.spend_by_category(start, end)
     suppliers = service.suppliers.list()
 
-    spend_df = pd.DataFrame(spend_rows, columns=["Mês", "Gasto Total"])
-    suppliers_df = pd.DataFrame(top_suppliers, columns=["Fornecedor", "Total"])
-
-    total_spend = spend_df["Gasto Total"].sum() if not spend_df.empty else 0
     active_suppliers = len(suppliers)
-    avg_rating = (
-        sum(float(s.rating) for s in suppliers) / len(suppliers) if suppliers else 0
-    )
+    avg_rating = sum(float(s.rating) for s in suppliers) / len(suppliers) if suppliers else 0
+
+total_spend = sum(v for _, v in spend_rows)
 
 kpi1, kpi2, kpi3 = st.columns(3)
 kpi1.metric("Gasto total no período", format_brl(total_spend))
 kpi2.metric("Fornecedores ativos", active_suppliers)
-kpi3.metric("Avaliação média de fornecedores", f"{avg_rating:.1f}")
+kpi3.metric("Avaliação média de fornecedores", f"{avg_rating:.1f} / 5")
 
-st.subheader("Gastos por mês")
-if spend_df.empty:
-    st.info("Nenhum pedido no período selecionado. Execute primeiro o gerador de dados sintéticos.")
-else:
-    st.line_chart(spend_df.set_index("Mês"), color=CHART_COLOR)
+trend_col, gauge_col = st.columns([3, 2])
+with trend_col:
+    st.subheader("Evolução dos gastos")
+    if not spend_rows:
+        st.info("Nenhum pedido no período selecionado.")
+    else:
+        months, values = zip(*spend_rows)
+        charts.render(charts.area(months, values, money=True))
+        st.caption("Total comprado mês a mês — picos merecem conferência com o planejamento.")
 
-st.subheader("Top 10 fornecedores")
-if suppliers_df.empty:
-    st.info("Nenhum dado de fornecedor no período selecionado.")
-else:
-    st.bar_chart(suppliers_df.set_index("Fornecedor"), color=CHART_COLOR)
+with gauge_col:
+    st.subheader("Qualidade da base de fornecedores")
+    charts.render(charts.gauge(round(avg_rating, 1), max_value=5, target=4, suffix=""))
+    st.caption("Avaliação média (0 a 5). A marca branca indica a meta: 4,0.")
+
+rank_col, cat_col = st.columns([3, 2])
+with rank_col:
+    st.subheader("Top 10 fornecedores")
+    if not top_suppliers:
+        st.info("Nenhum dado de fornecedor no período selecionado.")
+    else:
+        names, totals = zip(*top_suppliers)
+        charts.render(charts.hbar(names, totals, money=True))
+        st.caption("Maiores fornecedores por volume comprado no período.")
+
+with cat_col:
+    st.subheader("Com o que gastamos?")
+    if not category_rows:
+        st.info("Nenhum dado de categoria no período selecionado.")
+    else:
+        labels = [CATEGORIAS.get(cat, cat.title()) for cat, _ in category_rows]
+        values = [total for _, total in category_rows]
+        charts.render(charts.donut(labels, values, money=True))
+        st.caption("Distribuição do gasto por categoria de fornecimento.")

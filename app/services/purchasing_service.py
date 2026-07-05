@@ -75,3 +75,7 @@ class PurchasingService:
     @track("purchasing.top_suppliers")
     def top_suppliers(self, start: date, end: date, limit: int = 10) -> list[tuple[str, float]]:
         return self.orders.top_suppliers(start, end, limit)
+
+    @track("purchasing.spend_by_category")
+    def spend_by_category(self, start: date, end: date) -> list[tuple[str, float]]:
+        return self.orders.spend_by_supplier_category(start, end)

@@ -115,3 +115,51 @@ def test_top_suppliers_orders_by_spend_desc(session, location, product):
 
     assert top[0] == ("Big Supplier", 1000.0)
     assert top[1] == ("Small Supplier", 50.0)
+
+
+def test_spend_by_supplier_category_groups_and_excludes_cancelled(session, location, product):
+    raw = _make_supplier(session, code="SUP-8", name="Raw Co")
+    services = Supplier(
+        code="SUP-9",
+        name="Services Co",
+        category=SupplierCategory.SERVICES,
+        city="Gotham",
+        state="NJ",
+        rating=3.5,
+    )
+    session.add(services)
+    session.flush()
+    session.add_all(
+        [
+            PurchaseOrder(
+                order_number="PO-80",
+                supplier_id=raw.id,
+                location_id=location.id,
+                order_date=date(2026, 3, 1),
+                status=PurchaseOrderStatus.RECEIVED,
+                items=[PurchaseOrderItem(product_id=product.id, quantity=10, unit_cost=50)],
+            ),
+            PurchaseOrder(
+                order_number="PO-81",
+                supplier_id=services.id,
+                location_id=location.id,
+                order_date=date(2026, 3, 2),
+                status=PurchaseOrderStatus.RECEIVED,
+                items=[PurchaseOrderItem(product_id=product.id, quantity=2, unit_cost=50)],
+            ),
+            PurchaseOrder(
+                order_number="PO-82",
+                supplier_id=services.id,
+                location_id=location.id,
+                order_date=date(2026, 3, 3),
+                status=PurchaseOrderStatus.CANCELLED,
+                items=[PurchaseOrderItem(product_id=product.id, quantity=99, unit_cost=50)],
+            ),
+        ]
+    )
+    session.flush()
+
+    repo = PurchaseOrderRepository(session)
+    rows = repo.spend_by_supplier_category(date(2026, 3, 1), date(2026, 3, 31))
+
+    assert rows == [("raw_material", 500.0), ("services", 100.0)]

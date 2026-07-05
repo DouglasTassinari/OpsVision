@@ -13,17 +13,25 @@ if _PROJECT_ROOT not in sys.path:
 
 from datetime import date, timedelta
 
-import pandas as pd
 import streamlit as st
 
+from app.core import charts
 from app.core.bootstrap import ensure_demo_data_once
-from app.core.branding import CHART_COLOR, apply_branding
+from app.core.branding import apply_branding
 from app.database.base import session_scope
 from app.services.quality_service import QualityService
 
 apply_branding("Qualidade")
 
 ensure_demo_data_once()
+
+META_DEFEITOS = 2.0
+META_APROVACAO = 95.0
+SEVERIDADES = {
+    "critical": ("Crítica", charts.NEGATIVO),
+    "major": ("Alta", charts.BORDO_CLARO),
+    "minor": ("Menor", "#A7A7AD"),
+}
 
 st.title("Qualidade")
 st.caption("Taxas de defeito de inspeção, não conformidades e taxa de aprovação.")
@@ -39,25 +47,44 @@ with session_scope() as session:
     severity_rows = service.open_nonconformances_by_severity()
     pass_rate = service.pass_rate(start, end)
 
-    defect_rate_df = pd.DataFrame(defect_rate_rows, columns=["Mês", "Taxa de Defeito %"])
-    severity_df = pd.DataFrame(severity_rows, columns=["Severidade", "Quantidade Aberta"])
-
-    avg_defect_rate = defect_rate_df["Taxa de Defeito %"].mean() if not defect_rate_df.empty else 0
-    open_nonconformances = int(severity_df["Quantidade Aberta"].sum()) if not severity_df.empty else 0
+avg_defect_rate = (
+    sum(v for _, v in defect_rate_rows) / len(defect_rate_rows) if defect_rate_rows else 0
+)
+open_nonconformances = sum(count for _, count in severity_rows)
 
 kpi1, kpi2, kpi3 = st.columns(3)
 kpi1.metric("Taxa média de defeitos no período", f"{avg_defect_rate:.2f}%")
 kpi2.metric("Não conformidades abertas", open_nonconformances)
 kpi3.metric("Taxa de aprovação no período", f"{pass_rate:.2f}%")
 
-st.subheader("Taxa de defeito por mês")
-if defect_rate_df.empty:
-    st.info("Nenhuma inspeção no período selecionado. Execute primeiro o gerador de dados sintéticos.")
-else:
-    st.line_chart(defect_rate_df.set_index("Mês"), color=CHART_COLOR)
+defect_col, gauge_col = st.columns([3, 2])
+with defect_col:
+    st.subheader("Taxa de defeito por mês")
+    if not defect_rate_rows:
+        st.info("Nenhuma inspeção no período selecionado.")
+    else:
+        months, values = zip(*defect_rate_rows)
+        charts.render(
+            charts.line_with_target(months, values, target=META_DEFEITOS, target_label="Meta < 2%")
+        )
+        st.caption("Percentual de itens com defeito nas inspeções — abaixo da linha da meta é o esperado.")
+
+with gauge_col:
+    st.subheader("Taxa de aprovação")
+    charts.render(charts.gauge(round(pass_rate, 1), max_value=100, target=META_APROVACAO))
+    st.caption("Inspeções aprovadas de primeira. A marca branca indica a meta: 95%.")
 
 st.subheader("Não conformidades abertas por severidade")
-if severity_df.empty:
+if not severity_rows:
     st.info("Nenhuma não conformidade aberta.")
 else:
-    st.bar_chart(severity_df.set_index("Severidade"), color=CHART_COLOR)
+    by_severity = dict(severity_rows)
+    items = [
+        (label, by_severity[key], color)
+        for key, (label, color) in SEVERIDADES.items()
+        if key in by_severity
+    ]
+    charts.render(
+        charts.donut([i[0] for i in items], [i[1] for i in items], colors=[i[2] for i in items])
+    )
+    st.caption("Vermelho = severidade crítica: risco direto ao cliente ou à operação.")

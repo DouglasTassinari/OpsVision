@@ -59,6 +59,10 @@ class InventoryService:
     def on_hand_report(self) -> list[tuple[str, str, int]]:
         return self.movements.on_hand_by_product()
 
+    @track("inventory.on_hand_by_category")
+    def on_hand_by_category(self) -> list[tuple[str, str, int]]:
+        return self.movements.on_hand_by_category()
+
     @track("inventory.low_stock_alert")
     def low_stock_alert(self) -> list[Product]:
         return self.movements.low_stock_products()

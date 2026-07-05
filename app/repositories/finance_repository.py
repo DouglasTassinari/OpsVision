@@ -45,6 +45,19 @@ class InvoiceRepository(BaseRepository[Invoice]):
         )
         return float(self.session.execute(stmt).scalar() or 0.0)
 
+    def amounts_by_direction_and_status(self) -> list[tuple[str, str, float]]:
+        """Invoice totals grouped by (direction value, status value), cancelled excluded."""
+        stmt = (
+            select(Invoice.direction, Invoice.status, func.sum(Invoice.amount).label("total"))
+            .where(Invoice.status != InvoiceStatus.CANCELLED)
+            .group_by(Invoice.direction, Invoice.status)
+            .order_by(Invoice.direction, Invoice.status)
+        )
+        return [
+            (direction.value, status.value, round(float(total or 0), 2))
+            for direction, status, total in self.session.execute(stmt).all()
+        ]
+
 
 class TransactionRepository(BaseRepository[Transaction]):
     model = Transaction

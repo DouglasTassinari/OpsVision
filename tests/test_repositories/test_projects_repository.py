@@ -98,3 +98,14 @@ def test_upcoming_milestones_excludes_achieved_and_past(session):
     result = repo.upcoming_milestones(date(2026, 1, 1))
 
     assert [m.name for m in result] == ["Phase 1"]
+
+
+def test_count_by_status_groups_all_projects(session):
+    _make_project(session, status=ProjectStatus.ACTIVE, code="PRJ-20")
+    _make_project(session, status=ProjectStatus.ACTIVE, code="PRJ-21")
+    _make_project(session, status=ProjectStatus.COMPLETED, code="PRJ-22")
+
+    repo = ProjectRepository(session)
+    rows = repo.count_by_status()
+
+    assert rows == [("active", 2), ("completed", 1)]

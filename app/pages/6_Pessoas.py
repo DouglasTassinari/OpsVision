@@ -13,11 +13,11 @@ if _PROJECT_ROOT not in sys.path:
 
 from datetime import date, timedelta
 
-import pandas as pd
 import streamlit as st
 
+from app.core import charts
 from app.core.bootstrap import ensure_demo_data_once
-from app.core.branding import CHART_COLOR, apply_branding
+from app.core.branding import apply_branding
 from app.database.base import session_scope
 from app.services.people_service import PeopleService
 
@@ -39,19 +39,29 @@ with session_scope() as session:
     utilization_rows = service.time_off_utilization(start, end)
     pending_count = len(service.time_off.pending_requests())
 
-    headcount_df = pd.DataFrame(headcount_rows, columns=["Departamento", "Funcionários Ativos"])
-    utilization_df = pd.DataFrame(utilization_rows, columns=["Mês", "Dias Aprovados"])
-
-    active_headcount = int(headcount_df["Funcionários Ativos"].sum()) if not headcount_df.empty else 0
-    approved_days_in_period = int(utilization_df["Dias Aprovados"].sum()) if not utilization_df.empty else 0
+active_headcount = sum(count for _, count in headcount_rows)
+approved_days_in_period = sum(days for _, days in utilization_rows)
 
 kpi1, kpi2, kpi3 = st.columns(3)
 kpi1.metric("Quadro de funcionários ativo", active_headcount)
 kpi2.metric("Solicitações de folga pendentes", pending_count)
 kpi3.metric("Dias aprovados no período", approved_days_in_period)
 
-st.subheader("Quadro de funcionários por departamento")
-if headcount_df.empty:
-    st.info("Nenhum funcionário ativo ainda. Execute primeiro o gerador de dados sintéticos.")
-else:
-    st.bar_chart(headcount_df.set_index("Departamento"), color=CHART_COLOR)
+dept_col, timeoff_col = st.columns([3, 2])
+with dept_col:
+    st.subheader("Quadro por departamento")
+    if not headcount_rows:
+        st.info("Nenhum funcionário ativo ainda.")
+    else:
+        names, counts = zip(*headcount_rows)
+        charts.render(charts.hbar(names, counts))
+        st.caption("Funcionários ativos em cada departamento.")
+
+with timeoff_col:
+    st.subheader("Folgas ao longo do ano")
+    if not utilization_rows:
+        st.info("Nenhuma folga aprovada no período selecionado.")
+    else:
+        months, days = zip(*utilization_rows)
+        charts.render(charts.area(months, days))
+        st.caption("Dias de folga aprovados por mês — picos concentram ausências.")

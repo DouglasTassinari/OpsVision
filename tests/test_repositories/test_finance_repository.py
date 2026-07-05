@@ -192,3 +192,54 @@ def test_net_cashflow_by_month_nets_debits_and_credits(session):
     rows = repo.net_cashflow_by_month(date(2026, 1, 1), date(2026, 2, 28))
 
     assert rows == [("2026-01", 300.0), ("2026-02", 100.0)]
+
+
+def test_amounts_by_direction_and_status_excludes_cancelled(session):
+    session.add_all(
+        [
+            Invoice(
+                invoice_number="INV-40",
+                direction=InvoiceDirection.RECEIVABLE,
+                counterparty_name="A",
+                amount=100,
+                issue_date=date(2026, 1, 1),
+                due_date=date(2026, 2, 1),
+                status=InvoiceStatus.OPEN,
+            ),
+            Invoice(
+                invoice_number="INV-41",
+                direction=InvoiceDirection.RECEIVABLE,
+                counterparty_name="B",
+                amount=50,
+                issue_date=date(2026, 1, 2),
+                due_date=date(2026, 2, 2),
+                status=InvoiceStatus.OPEN,
+            ),
+            Invoice(
+                invoice_number="INV-42",
+                direction=InvoiceDirection.PAYABLE,
+                counterparty_name="C",
+                amount=70,
+                issue_date=date(2026, 1, 3),
+                due_date=date(2026, 2, 3),
+                status=InvoiceStatus.PAID,
+            ),
+            Invoice(
+                invoice_number="INV-43",
+                direction=InvoiceDirection.PAYABLE,
+                counterparty_name="D",
+                amount=999,
+                issue_date=date(2026, 1, 4),
+                due_date=date(2026, 2, 4),
+                status=InvoiceStatus.CANCELLED,
+            ),
+        ]
+    )
+    session.flush()
+
+    repo = InvoiceRepository(session)
+    rows = repo.amounts_by_direction_and_status()
+
+    assert ("receivable", "open", 150.0) in rows
+    assert ("payable", "paid", 70.0) in rows
+    assert all(status != "cancelled" for _, status, _ in rows)

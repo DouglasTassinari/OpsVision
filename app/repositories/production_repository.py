@@ -26,6 +26,16 @@ class WorkOrderRepository(BaseRepository[WorkOrder]):
         stmt = select(WorkOrder).where(WorkOrder.status == status)
         return list(self.session.execute(stmt).scalars().all())
 
+    def count_by_status(self, start: date, end: date) -> list[tuple[str, int]]:
+        """Work order count grouped by status (enum value, count) within the period."""
+        stmt = (
+            select(WorkOrder.status, func.count().label("total"))
+            .where(WorkOrder.scheduled_date >= start, WorkOrder.scheduled_date <= end)
+            .group_by(WorkOrder.status)
+            .order_by(func.count().desc())
+        )
+        return [(status.value, int(count)) for status, count in self.session.execute(stmt).all()]
+
     def yield_by_line(self, start: date, end: date) -> list[tuple[str, float]]:
         stmt = (
             select(

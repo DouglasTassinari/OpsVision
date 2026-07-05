@@ -107,3 +107,7 @@ class FinanceService:
     @track("finance.cash_position")
     def cash_position(self, start: date, end: date) -> list[tuple[str, float]]:
         return self.transactions.net_cashflow_by_month(start, end)
+
+    @track("finance.invoice_breakdown")
+    def invoice_breakdown(self) -> list[tuple[str, str, float]]:
+        return self.invoices.amounts_by_direction_and_status()

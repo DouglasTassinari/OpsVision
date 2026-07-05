@@ -87,3 +87,7 @@ class ProductionService:
     @track("production.monthly_scrap")
     def monthly_scrap(self, start: date, end: date) -> list[tuple[str, int]]:
         return self.work_orders.scrap_by_month(start, end)
+
+    @track("production.status_breakdown")
+    def status_breakdown(self, start: date, end: date) -> list[tuple[str, int]]:
+        return self.work_orders.count_by_status(start, end)

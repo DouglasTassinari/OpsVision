@@ -13,11 +13,11 @@ if _PROJECT_ROOT not in sys.path:
 
 from datetime import date, timedelta
 
-import pandas as pd
 import streamlit as st
 
+from app.core import charts
 from app.core.bootstrap import ensure_demo_data_once
-from app.core.branding import CHART_COLOR, apply_branding
+from app.core.branding import apply_branding
 from app.core.formatting import format_brl
 from app.database.base import session_scope
 from app.services.sales_service import SalesService
@@ -25,6 +25,8 @@ from app.services.sales_service import SalesService
 apply_branding("Vendas")
 
 ensure_demo_data_once()
+
+SEGMENTOS = {"retail": "Varejo", "wholesale": "Atacado", "enterprise": "Corporativo"}
 
 st.title("Vendas")
 st.caption("Receita, pipeline de pedidos e principais clientes.")
@@ -38,26 +40,40 @@ with session_scope() as session:
     service = SalesService(session)
     revenue_rows = service.monthly_revenue(start, end)
     top_customers = service.top_customers(start, end, limit=10)
-
-    revenue_df = pd.DataFrame(revenue_rows, columns=["Mês", "Receita Líquida"])
-    customers_df = pd.DataFrame(top_customers, columns=["Cliente", "Total"])
-
-    total_revenue = revenue_df["Receita Líquida"].sum() if not revenue_df.empty else 0
+    segment_rows = service.revenue_by_segment(start, end)
     active_customers = len(service.active_customers())
+
+total_revenue = sum(v for _, v in revenue_rows)
 
 kpi1, kpi2, kpi3 = st.columns(3)
 kpi1.metric("Receita líquida no período", format_brl(total_revenue))
 kpi2.metric("Clientes ativos", active_customers)
-kpi3.metric("Meses com pedidos", len(revenue_df))
+kpi3.metric("Meses com pedidos", len(revenue_rows))
 
-st.subheader("Receita por mês")
-if revenue_df.empty:
-    st.info("Nenhum pedido no período selecionado. Execute primeiro o gerador de dados sintéticos.")
-else:
-    st.line_chart(revenue_df.set_index("Mês"), color=CHART_COLOR)
+trend_col, segment_col = st.columns([3, 2])
+with trend_col:
+    st.subheader("Evolução da receita")
+    if not revenue_rows:
+        st.info("Nenhum pedido no período selecionado.")
+    else:
+        months, values = zip(*revenue_rows)
+        charts.render(charts.area(months, values, money=True))
+        st.caption("Receita líquida faturada mês a mês no período selecionado.")
+
+with segment_col:
+    st.subheader("Quem gera a receita?")
+    if not segment_rows:
+        st.info("Nenhum dado de segmento no período selecionado.")
+    else:
+        labels = [SEGMENTOS.get(seg, seg.title()) for seg, _ in segment_rows]
+        values = [total for _, total in segment_rows]
+        charts.render(charts.donut(labels, values, money=True))
+        st.caption("Participação de cada perfil de cliente na receita do período.")
 
 st.subheader("Top 10 clientes")
-if customers_df.empty:
+if not top_customers:
     st.info("Nenhum dado de cliente no período selecionado.")
 else:
-    st.bar_chart(customers_df.set_index("Cliente"), color=CHART_COLOR)
+    names, totals = zip(*top_customers)
+    charts.render(charts.hbar(names, totals, money=True))
+    st.caption("Maiores clientes por receita no período — concentração alta indica dependência.")
