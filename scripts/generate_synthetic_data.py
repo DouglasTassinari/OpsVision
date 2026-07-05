@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import random
 import sys
+import unicodedata
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
@@ -82,11 +83,88 @@ from app.database.models.sales import Customer, CustomerSegment, OrderStatus, Sa
 # Bump whenever the generated dataset changes shape (volumes, salaries,
 # accounting rules...): deployments with a database seeded by an older
 # version reseed automatically on boot (see app/core/bootstrap.py).
-DATASET_VERSION = 2
+DATASET_VERSION = 3
 
 DATASET_START = date(2023, 1, 1)
 DATASET_END = date.today()
 HIRE_WINDOW_START = date(2018, 1, 1)
+
+
+# Vocabulário pt-BR para entidades que o Faker não cobre bem em português.
+PRODUCT_NAME_POOLS = {
+    ProductCategory.RAW_MATERIAL: (
+        ["Chapa de Aço", "Bobina de Alumínio", "Resina ABS", "Polietileno Granulado", "Barra de Latão",
+         "Tubo de Cobre", "Chapa Galvanizada", "Vergalhão CA-50", "Tinta Epóxi", "Borracha Nitrílica"],
+        ["1mm", "3mm", "6mm", "10kg", "25kg", "50kg", "Tipo A", "Tipo B", "Premium", "Industrial"],
+    ),
+    ProductCategory.COMPONENT: (
+        ["Rolamento", "Engrenagem", "Motor Elétrico", "Válvula Solenoide", "Sensor Indutivo",
+         "Correia Dentada", "Painel de Comando", "Bomba Hidráulica", "Cilindro Pneumático", "Fonte Chaveada"],
+        ["6204", "8210", "2CV", "5CV", "12V", "24V", "220V", "Série X", "Série K", "Compacto"],
+    ),
+    ProductCategory.FINISHED_GOOD: (
+        ["Compressor", "Furadeira Industrial", "Esteira Transportadora", "Painel Modular", "Bancada de Trabalho",
+         "Exaustor Industrial", "Talha Elétrica", "Serra de Bancada", "Prensa Manual", "Gerador Portátil"],
+        ["Pro 200", "Max 350", "Slim", "Heavy Duty", "Standard", "Plus", "Ultra", "Eco", "Turbo", "HD 500"],
+    ),
+    ProductCategory.PACKAGING: (
+        ["Caixa de Papelão", "Filme Stretch", "Palete PBR", "Fita Adesiva", "Saco Plástico",
+         "Cinta de Arquear", "Etiqueta Térmica", "Manta de Proteção", "Cantoneira", "Plástico Bolha"],
+        ["30x30", "40x60", "Rolo 500m", "Reforçado", "Standard", "Industrial", "Kit 100", "Rolo 50m", "Branco", "Pardo"],
+    ),
+}
+
+ASSET_NAMES = [
+    "Prensa Hidráulica", "Torno CNC", "Compressor de Ar", "Empilhadeira", "Ponte Rolante",
+    "Injetora Plástica", "Caldeira", "Chiller Industrial", "Gerador Diesel", "Esteira Transportadora",
+    "Robô de Solda", "Fresadora", "Dobradeira", "Serra Fita", "Câmara Fria",
+]
+
+PROJECT_PREFIXES = [
+    "Expansão", "Automação", "Modernização", "Implantação", "Otimização",
+    "Integração", "Digitalização", "Reestruturação",
+]
+PROJECT_TARGETS = [
+    "da Linha de Montagem", "do Armazém Central", "da Planta 2", "do ERP",
+    "da Frota", "de Embalagens", "do Controle de Qualidade", "da Malha Logística",
+    "do Centro de Distribuição", "da Célula de Solda",
+]
+TASK_TITLES = [
+    "Levantar requisitos", "Aprovar orçamento", "Contratar fornecedor", "Elaborar cronograma",
+    "Executar testes", "Treinar equipe", "Homologar processo", "Revisar documentação",
+    "Instalar equipamentos", "Validar protótipo", "Mapear riscos", "Auditar entregas",
+    "Configurar sistema", "Migrar dados", "Realizar piloto", "Aprovar layout",
+]
+MILESTONE_NAMES = [
+    "Kickoff concluído", "Requisitos aprovados", "Fase 1 entregue", "Homologação concluída",
+    "Go-live", "Treinamento finalizado", "Encerramento do projeto",
+]
+MAINTENANCE_NOTES = [
+    "Troca de rolamento e lubrificação geral.", "Substituição de correia desgastada.",
+    "Ajuste de alinhamento e calibração.", "Reparo no painel elétrico.",
+    "Limpeza técnica e inspeção preventiva.", "Substituição de vedação com vazamento.",
+    "Atualização de firmware do controlador.", "Troca de filtros e óleo hidráulico.",
+]
+NONCONFORMANCE_DESCRIPTIONS = [
+    "Dimensão fora da tolerância especificada.", "Acabamento superficial com riscos.",
+    "Falha de solda identificada na inspeção.", "Cor divergente do padrão aprovado.",
+    "Embalagem danificada no manuseio.", "Componente com folga acima do limite.",
+    "Etiqueta com informação incorreta.", "Contaminação detectada no lote.",
+]
+AUDIT_ACTIONS = ["criação", "atualização", "exclusão", "aprovação", "exportação"]
+AUDIT_ENTITIES = [
+    "Pedido de Venda", "Pedido de Compra", "Ordem de Produção",
+    "Fatura", "Projeto", "Solicitação de Manutenção",
+]
+AUDIT_DETAILS = [
+    "Registro revisado pelo responsável do módulo.", "Alteração aprovada pelo gestor da área.",
+    "Operação executada em lote pela rotina mensal.", "Ajuste manual após conferência física.",
+    "Documento exportado para auditoria externa.", "Atualização de status após integração.",
+]
+
+
+def strip_accents(text: str) -> str:
+    return "".join(c for c in unicodedata.normalize("NFKD", text) if not unicodedata.combining(c))
 
 
 def random_date(start: date = DATASET_START, end: date = DATASET_END) -> date:
@@ -118,10 +196,15 @@ def generate_locations(session, fake: Faker) -> list[Location]:
         ("WH1", LocationType.WAREHOUSE), ("WH2", LocationType.WAREHOUSE),
         ("HQ1", LocationType.OFFICE), ("OFF2", LocationType.OFFICE), ("OFF3", LocationType.OFFICE),
     ]
+    type_labels = {
+        LocationType.PLANT: "Planta",
+        LocationType.WAREHOUSE: "Armazém",
+        LocationType.OFFICE: "Escritório",
+    }
     locations = [
         Location(
-            code=code, name=f"{fake.city()} {loc_type.value.title()}", city=fake.city(),
-            state=fake.state(), country="Brazil", location_type=loc_type,
+            code=code, name=f"{type_labels[loc_type]} {fake.city()}", city=fake.city(),
+            state=fake.state(), country="Brasil", location_type=loc_type,
         )
         for code, loc_type in blueprint
     ]
@@ -132,11 +215,11 @@ def generate_locations(session, fake: Faker) -> list[Location]:
 
 def generate_departments(session) -> list[Department]:
     names = [
-        ("SALES", "Sales", "CC-100"), ("MFG", "Manufacturing", "CC-200"),
-        ("LOG", "Logistics", "CC-210"), ("PROC", "Procurement", "CC-300"),
-        ("FIN", "Finance", "CC-400"), ("HR", "Human Resources", "CC-500"),
-        ("PMO", "Program Management", "CC-600"), ("FAC", "Facilities & Maintenance", "CC-700"),
-        ("QA", "Quality Assurance", "CC-800"), ("IT", "IT & Administration", "CC-900"),
+        ("SALES", "Vendas", "CC-100"), ("MFG", "Produção", "CC-200"),
+        ("LOG", "Logística", "CC-210"), ("PROC", "Suprimentos", "CC-300"),
+        ("FIN", "Financeiro", "CC-400"), ("HR", "Recursos Humanos", "CC-500"),
+        ("PMO", "Escritório de Projetos", "CC-600"), ("FAC", "Manutenção e Instalações", "CC-700"),
+        ("QA", "Qualidade", "CC-800"), ("IT", "TI e Administração", "CC-900"),
     ]
     departments = [Department(code=c, name=n, cost_center=cc) for c, n, cc in names]
     session.add_all(departments)
@@ -167,7 +250,7 @@ def generate_employees(session, fake: Faker, departments, locations, count: int 
 def generate_warehouses(session, locations, count: int = 5) -> list[Warehouse]:
     candidates = [loc for loc in locations if loc.location_type in (LocationType.WAREHOUSE, LocationType.PLANT)]
     warehouses = [
-        Warehouse(code=f"WH-{i:02d}", name=f"Warehouse {i}", location_id=random.choice(candidates).id, capacity_units=random.randint(5000, 50000))
+        Warehouse(code=f"WH-{i:02d}", name=f"Armazém {i}", location_id=random.choice(candidates).id, capacity_units=random.randint(5000, 50000))
         for i in range(1, count + 1)
     ]
     session.add_all(warehouses)
@@ -176,16 +259,21 @@ def generate_warehouses(session, locations, count: int = 5) -> list[Warehouse]:
 
 
 def generate_products(session, fake: Faker, count: int = 130) -> list[Product]:
-    products = []
+    products, used_names = [], set()
     for i in range(1, count + 1):
         category = weighted_choice(
             {ProductCategory.RAW_MATERIAL: 0.25, ProductCategory.COMPONENT: 0.3, ProductCategory.FINISHED_GOOD: 0.35, ProductCategory.PACKAGING: 0.1}
         )
+        bases, variants = PRODUCT_NAME_POOLS[category]
+        name = f"{random.choice(bases)} {random.choice(variants)}"
+        while name in used_names:
+            name = f"{random.choice(bases)} {random.choice(variants)}"
+        used_names.add(name)
         unit_cost = round(random.uniform(4, 480), 2)
         products.append(
             Product(
                 sku=f"SKU-{i:05d}",
-                name=f"{fake.word().title()} {fake.word().title()}",
+                name=name,
                 category=category,
                 unit_cost=unit_cost,
                 unit_price=round(unit_cost * random.uniform(1.3, 2.6), 2),
@@ -201,7 +289,7 @@ def generate_products(session, fake: Faker, count: int = 130) -> list[Product]:
 def generate_production_lines(session, locations, count: int = 12) -> list[ProductionLine]:
     plants = [loc for loc in locations if loc.location_type == LocationType.PLANT]
     lines = [
-        ProductionLine(code=f"LINE-{i:02d}", name=f"Line {i}", location_id=random.choice(plants).id, capacity_units_per_hour=round(random.uniform(50, 520), 2))
+        ProductionLine(code=f"LINE-{i:02d}", name=f"Linha {i}", location_id=random.choice(plants).id, capacity_units_per_hour=round(random.uniform(50, 520), 2))
         for i in range(1, count + 1)
     ]
     session.add_all(lines)
@@ -239,9 +327,9 @@ def generate_suppliers(session, fake: Faker, count: int = 95) -> list[Supplier]:
 
 def generate_roles_and_users(session, fake: Faker, employees, count: int = 70) -> tuple[list[Role], list[User]]:
     role_defs = [
-        ("ADMIN", "Administrator", "Full system access"), ("MANAGER", "Manager", "Departmental oversight"),
-        ("ANALYST", "Analyst", "Reporting and analytics"), ("OPERATOR", "Operator", "Day-to-day operations"),
-        ("VIEWER", "Viewer", "Read-only access"),
+        ("ADMIN", "Administrador", "Acesso total ao sistema"), ("MANAGER", "Gestor", "Supervisão do departamento"),
+        ("ANALYST", "Analista", "Relatórios e análises"), ("OPERATOR", "Operador", "Operações do dia a dia"),
+        ("VIEWER", "Leitor", "Acesso somente leitura"),
     ]
     roles = [Role(code=c, name=n, description=d) for c, n, d in role_defs]
     session.add_all(roles)
@@ -250,7 +338,7 @@ def generate_roles_and_users(session, fake: Faker, employees, count: int = 70) -
     staff = random.sample(employees, k=min(count, len(employees)))
     users = []
     for i, employee in enumerate(staff, start=1):
-        username = f"{employee.full_name.split()[0].lower()}.{i}"
+        username = f"{strip_accents(employee.full_name.split()[0].lower())}.{i}"
         users.append(
             User(
                 username=username,
@@ -371,7 +459,7 @@ def generate_stock_movements(session, sales_orders, purchase_orders, products, w
             movements.append(
                 StockMovement(
                     product_id=item.product_id, warehouse_id=random.choice(warehouses).id, movement_type=MovementType.OUTBOUND,
-                    quantity=item.quantity, movement_date=order.order_date, reference_note=f"Shipment for {order.order_number}",
+                    quantity=item.quantity, movement_date=order.order_date, reference_note=f"Expedição do pedido {order.order_number}",
                 )
             )
     for order in purchase_orders:
@@ -381,7 +469,7 @@ def generate_stock_movements(session, sales_orders, purchase_orders, products, w
             movements.append(
                 StockMovement(
                     product_id=item.product_id, warehouse_id=random.choice(warehouses).id, movement_type=MovementType.INBOUND,
-                    quantity=item.quantity, movement_date=order.order_date, reference_note=f"Receipt for {order.order_number}",
+                    quantity=item.quantity, movement_date=order.order_date, reference_note=f"Recebimento do pedido {order.order_number}",
                 )
             )
     for _ in range(1200):
@@ -390,7 +478,7 @@ def generate_stock_movements(session, sales_orders, purchase_orders, products, w
         movements.append(
             StockMovement(
                 product_id=random.choice(products).id, warehouse_id=random.choice(warehouses).id, movement_type=movement_type,
-                quantity=quantity if random.random() > 0.3 else -quantity, movement_date=random_date(), reference_note="Cycle count adjustment",
+                quantity=quantity if random.random() > 0.3 else -quantity, movement_date=random_date(), reference_note="Ajuste de inventário cíclico",
             )
         )
     for batch_start in range(0, len(movements), 1000):
@@ -401,10 +489,10 @@ def generate_stock_movements(session, sales_orders, purchase_orders, products, w
 
 def generate_finance(session, sales_orders, purchase_orders, employees):
     account_defs = [
-        ("1000", "Cash", AccountType.ASSET), ("1100", "Accounts Receivable", AccountType.ASSET),
-        ("2000", "Accounts Payable", AccountType.LIABILITY), ("3000", "Equity", AccountType.EQUITY),
-        ("4000", "Sales Revenue", AccountType.REVENUE), ("5000", "Cost of Goods Sold", AccountType.EXPENSE),
-        ("5100", "Payroll Expense", AccountType.EXPENSE), ("5200", "Operating Expense", AccountType.EXPENSE),
+        ("1000", "Caixa", AccountType.ASSET), ("1100", "Contas a Receber", AccountType.ASSET),
+        ("2000", "Contas a Pagar", AccountType.LIABILITY), ("3000", "Patrimônio Líquido", AccountType.EQUITY),
+        ("4000", "Receita de Vendas", AccountType.REVENUE), ("5000", "Custo da Mercadoria Vendida", AccountType.EXPENSE),
+        ("5100", "Despesa de Folha", AccountType.EXPENSE), ("5200", "Despesa Operacional", AccountType.EXPENSE),
     ]
     accounts = [Account(code=c, name=n, account_type=t) for c, n, t in account_defs]
     session.add_all(accounts)
@@ -421,7 +509,7 @@ def generate_finance(session, sales_orders, purchase_orders, employees):
         due = issue + timedelta(days=30)
         status = InvoiceStatus.PAID if due < DATASET_END - timedelta(days=45) else weighted_choice({InvoiceStatus.OPEN: 0.6, InvoiceStatus.OVERDUE: 0.3, InvoiceStatus.PAID: 0.1})
         invoice = Invoice(
-            invoice_number=f"INV-R-{i:06d}", direction=InvoiceDirection.RECEIVABLE, counterparty_name=f"Customer #{order.customer_id}",
+            invoice_number=f"INV-R-{i:06d}", direction=InvoiceDirection.RECEIVABLE, counterparty_name=f"Cliente #{order.customer_id}",
             amount=amount, issue_date=issue, due_date=due, status=status, source_sales_order_id=order.id,
         )
         invoices.append(invoice)
@@ -435,7 +523,7 @@ def generate_finance(session, sales_orders, purchase_orders, employees):
         due = issue + timedelta(days=30)
         status = InvoiceStatus.PAID if due < DATASET_END - timedelta(days=45) else weighted_choice({InvoiceStatus.OPEN: 0.6, InvoiceStatus.OVERDUE: 0.3, InvoiceStatus.PAID: 0.1})
         invoice = Invoice(
-            invoice_number=f"INV-P-{i:06d}", direction=InvoiceDirection.PAYABLE, counterparty_name=f"Supplier #{order.supplier_id}",
+            invoice_number=f"INV-P-{i:06d}", direction=InvoiceDirection.PAYABLE, counterparty_name=f"Fornecedor #{order.supplier_id}",
             amount=amount, issue_date=issue, due_date=due, status=status, source_purchase_order_id=order.id,
         )
         invoices.append(invoice)
@@ -456,7 +544,7 @@ def generate_finance(session, sales_orders, purchase_orders, employees):
             Transaction(
                 account_id=by_code["1000"].id, invoice_id=invoice.id, transaction_type=cash_type,
                 amount=invoice.amount, transaction_date=invoice.due_date,
-                description=f"Settlement of {invoice.invoice_number}",
+                description=f"Liquidação da fatura {invoice.invoice_number}",
             )
         )
 
@@ -466,7 +554,7 @@ def generate_finance(session, sales_orders, purchase_orders, employees):
         transactions.append(
             Transaction(
                 account_id=by_code["5100"].id, transaction_type=TransactionType.DEBIT, amount=monthly_payroll,
-                transaction_date=month, description=f"Payroll run {month.strftime('%Y-%m')}",
+                transaction_date=month, description=f"Folha de pagamento {month.strftime('%Y-%m')}",
             )
         )
 
@@ -501,7 +589,9 @@ def generate_projects(session, fake: Faker, departments, employees, count: int =
         start = random_date(DATASET_START, DATASET_END - timedelta(days=30))
         target_end = start + timedelta(days=random.randint(60, 400))
         project = Project(
-            code=f"PRJ-{i:04d}", name=fake.catch_phrase(), sponsor_department_id=random.choice(departments).id,
+            code=f"PRJ-{i:04d}",
+            name=f"{random.choice(PROJECT_PREFIXES)} {random.choice(PROJECT_TARGETS)}",
+            sponsor_department_id=random.choice(departments).id,
             status=weighted_choice(status_weights), start_date=start, target_end_date=target_end,
             budget=round(random.uniform(20000, 2_000_000), 2),
         )
@@ -510,7 +600,7 @@ def generate_projects(session, fake: Faker, departments, employees, count: int =
         for _ in range(random.randint(6, 18)):
             tasks.append(
                 Task(
-                    project_id=project.id, title=fake.bs().title(), assignee_employee_id=random.choice(employees).id,
+                    project_id=project.id, title=random.choice(TASK_TITLES), assignee_employee_id=random.choice(employees).id,
                     status=weighted_choice(task_status_weights), due_date=random_date(start, target_end),
                     estimated_hours=round(random.uniform(2, 80), 2),
                 )
@@ -519,7 +609,7 @@ def generate_projects(session, fake: Faker, departments, employees, count: int =
             due = random_date(start, target_end)
             achieved = due < DATASET_END and random.random() > 0.3
             milestones.append(
-                Milestone(project_id=project.id, name=fake.bs().title(), due_date=due, achieved=achieved, achieved_date=due if achieved else None)
+                Milestone(project_id=project.id, name=random.choice(MILESTONE_NAMES), due_date=due, achieved=achieved, achieved_date=due if achieved else None)
             )
         projects.append(project)
     session.add_all(tasks)
@@ -533,7 +623,7 @@ def generate_maintenance(session, fake: Faker, locations, employees, count_asset
     criticality_weights = {AssetCriticality.LOW: 0.3, AssetCriticality.MEDIUM: 0.35, AssetCriticality.HIGH: 0.25, AssetCriticality.CRITICAL: 0.1}
     assets = [
         Asset(
-            asset_tag=f"AST-{i:05d}", name=f"{fake.word().title()} Unit {i}", location_id=random.choice(locations).id,
+            asset_tag=f"AST-{i:05d}", name=f"{random.choice(ASSET_NAMES)} {i:02d}", location_id=random.choice(locations).id,
             category=weighted_choice(category_weights), install_date=random_date(date(2016, 1, 1), DATASET_END),
             criticality=weighted_choice(criticality_weights),
         )
@@ -561,7 +651,7 @@ def generate_maintenance(session, fake: Faker, locations, employees, count_asset
                     MaintenanceLog(
                         request_id=request.id, log_date=opened + timedelta(days=random.randint(0, 10)),
                         hours_spent=round(random.uniform(0.5, 40), 2), cost=round(random.uniform(50, 5000), 2),
-                        notes=fake.sentence() if random.random() > 0.5 else None,
+                        notes=random.choice(MAINTENANCE_NOTES) if random.random() > 0.5 else None,
                     )
                 )
         requests.append(request)
@@ -595,7 +685,8 @@ def generate_quality(session, fake: Faker, products, work_orders, employees, loc
             closed_date = inspection_date + timedelta(days=random.randint(1, 30)) if status == NonConformanceStatus.CLOSED else None
             nonconformances.append(
                 NonConformance(
-                    inspection_id=inspection.id, severity=severity, description=fake.sentence(), status=status,
+                    inspection_id=inspection.id, severity=severity,
+                    description=random.choice(NONCONFORMANCE_DESCRIPTIONS), status=status,
                     opened_date=inspection_date, closed_date=closed_date,
                 )
             )
@@ -622,13 +713,12 @@ def generate_quality(session, fake: Faker, products, work_orders, employees, loc
 
 
 def generate_audit_logs(session, fake: Faker, users, count: int = 350):
-    actions = ["create", "update", "delete", "approve", "export"]
-    entities = ["SalesOrder", "PurchaseOrder", "WorkOrder", "Invoice", "Project", "MaintenanceRequest"]
     logs = [
         AuditLog(
             actor_user_id=random.choice(users).id if users and random.random() > 0.1 else None,
-            action=random.choice(actions), entity_name=random.choice(entities), entity_id=random.randint(1, 2000),
-            occurred_at=random_datetime(random_date()), detail=fake.sentence() if random.random() > 0.4 else None,
+            action=random.choice(AUDIT_ACTIONS), entity_name=random.choice(AUDIT_ENTITIES), entity_id=random.randint(1, 2000),
+            occurred_at=random_datetime(random_date()),
+            detail=random.choice(AUDIT_DETAILS) if random.random() > 0.4 else None,
         )
         for _ in range(count)
     ]
@@ -654,7 +744,7 @@ def _write_dataset_version(session) -> None:
 def run(seed: int = 42, reset: bool = False) -> None:
     """Generate the full dataset. Callable from code (e.g. the app bootstrap)."""
     random.seed(seed)
-    fake = Faker()
+    fake = Faker("pt_BR")
     Faker.seed(seed)
 
     import app.database.models  # noqa: F401 — registers every model on Base.metadata
