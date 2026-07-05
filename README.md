@@ -35,7 +35,7 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
 python scripts/generate_synthetic_data.py --reset   # populate data/opsvision.db
-streamlit run "app/Início.py"                       # open http://localhost:8501
+streamlit run app/main.py                           # open http://localhost:8501
 ```
 
 See [`docs/HOW_TO_RUN.md`](docs/HOW_TO_RUN.md) for details, configuration
@@ -52,7 +52,8 @@ app/
   domain/          pure business-rule functions (no I/O), one module per business module
   services/        orchestrates repositories + domain rules; the only layer the UI talks to
   pages/           Streamlit pages, one per module
-  Início.py        Dashboard (executive KPI overview) — Streamlit entrypoint
+  Início.py        Dashboard (executive KPI overview) — home page
+  main.py          Streamlit entrypoint — registers pages via st.navigation
 scripts/           init_db.py, generate_synthetic_data.py, run_health_check.py
 tests/             mirrors app/ — test_domain/, test_repositories/, test_services/
 docs/              architecture, module reference, how-to-run, contributing

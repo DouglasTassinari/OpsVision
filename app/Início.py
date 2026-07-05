@@ -1,4 +1,4 @@
-"""OpsVision entrypoint: executive Dashboard (run via ``streamlit run app/Início.py``)."""
+"""Página inicial: Dashboard executivo (registrada em ``app/main.py`` via st.navigation)."""
 # ruff: noqa: E402  -- sys.path bootstrap below must run before the app.* imports
 from __future__ import annotations
 

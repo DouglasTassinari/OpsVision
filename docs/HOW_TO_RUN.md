@@ -38,7 +38,7 @@ what order.
 ## 3. Run the app
 
 ```bash
-streamlit run "app/Início.py"
+streamlit run app/main.py
 ```
 
 Opens the Dashboard at `http://localhost:8501`. Use the sidebar to reach
@@ -83,7 +83,7 @@ Example, running against PostgreSQL instead of the bundled SQLite file:
 ```bash
 export OPSVISION_DATABASE_URL="postgresql://opsvision:password@localhost/opsvision"
 python scripts/generate_synthetic_data.py --reset
-streamlit run "app/Início.py"
+streamlit run app/main.py
 ```
 
 No code changes are needed to switch backends — `app/database/base.py`
