@@ -150,7 +150,7 @@ def generate_employees(session, fake: Faker, departments, locations, count: int 
             job_title=fake.job(),
             hire_date=random_date(HIRE_WINDOW_START, DATASET_END),
             employment_status=weighted_choice(status_weights),
-            base_salary=round(random.uniform(3200, 24000), 2),
+            base_salary=round(random.uniform(2600, 15000), 2),
         )
         for i in range(1, count + 1)
     ]
@@ -277,7 +277,7 @@ def generate_sales(session, customers, products, locations, count: int = 2200):
         for product in random.sample(products, k=random.randint(1, 5)):
             unit_price = round(float(product.unit_price) * random.uniform(0.92, 1.08), 2)
             items.append(
-                SalesOrderItem(order_id=order.id, product_id=product.id, quantity=random.randint(1, 50), unit_price=unit_price)
+                SalesOrderItem(order_id=order.id, product_id=product.id, quantity=random.randint(1, 220), unit_price=unit_price)
             )
         orders.append(order)
         if i % 500 == 0:
@@ -304,7 +304,7 @@ def generate_purchasing(session, suppliers, products, locations, count: int = 95
         for product in random.sample(products, k=random.randint(1, 6)):
             unit_cost = round(float(product.unit_cost) * random.uniform(0.9, 1.15), 2)
             items.append(
-                PurchaseOrderItem(purchase_order_id=order.id, product_id=product.id, quantity=random.randint(10, 500), unit_cost=unit_cost)
+                PurchaseOrderItem(purchase_order_id=order.id, product_id=product.id, quantity=random.randint(10, 360), unit_cost=unit_cost)
             )
         orders.append(order)
         if i % 500 == 0:
@@ -442,20 +442,16 @@ def generate_finance(session, sales_orders, purchase_orders, employees):
     for invoice in invoices:
         if invoice.status != InvoiceStatus.PAID:
             continue
-        revenue_side = by_code["4000"] if invoice.direction == InvoiceDirection.RECEIVABLE else by_code["5000"]
+        # Only the cash leg is recorded here: net_cashflow_by_month sums every
+        # Transaction in range, so a paired revenue/COGS recognition entry
+        # would always net to zero and silently erase sales and purchases
+        # from the cash flow, leaving only payroll visible.
         cash_type = TransactionType.CREDIT if invoice.direction == InvoiceDirection.RECEIVABLE else TransactionType.DEBIT
         transactions.append(
             Transaction(
                 account_id=by_code["1000"].id, invoice_id=invoice.id, transaction_type=cash_type,
                 amount=invoice.amount, transaction_date=invoice.due_date,
                 description=f"Settlement of {invoice.invoice_number}",
-            )
-        )
-        transactions.append(
-            Transaction(
-                account_id=revenue_side.id, invoice_id=invoice.id,
-                transaction_type=TransactionType.DEBIT if cash_type == TransactionType.CREDIT else TransactionType.CREDIT,
-                amount=invoice.amount, transaction_date=invoice.due_date, description=f"Recognize {invoice.invoice_number}",
             )
         )
 
