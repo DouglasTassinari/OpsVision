@@ -18,9 +18,9 @@ from datetime import date
 SLA_POR_CLASSE: dict[str, int] = {"A+": 90, "A": 90, "B": 180, "C": 365}
 
 # Semáforo BI (mesmas cores dos gráficos): verde/amarelo/vermelho.
-_VERDE = "#3AA76D"
-_AMARELO = "#FFD966"
-_VERMELHO = "#C4455A"
+_VERDE = "#4CAF50"
+_AMARELO = "#F2A900"
+_VERMELHO = "#E5484D"
 
 
 def dias_desde(ultima: date | None, hoje: date) -> int | None:

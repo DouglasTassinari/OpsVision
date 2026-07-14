@@ -26,9 +26,9 @@ apply_branding("Projetos")
 ensure_demo_data_once()
 
 STATUS_PROJETO = {
-    "active": ("Ativos", charts.BORDO_CLARO),
-    "planning": ("Em planejamento", "#A7A7AD"),
-    "on_hold": ("Em espera", "#8C8C93"),
+    "active": ("Ativos", charts.PRIMARIA),
+    "planning": ("Em planejamento", charts.NEUTRO_CLARO),
+    "on_hold": ("Em espera", charts.NEUTRO),
     "completed": ("Concluídos", charts.POSITIVO),
     "cancelled": ("Cancelados", charts.NEGATIVO),
 }
@@ -63,7 +63,7 @@ with progress_col:
         names = [row["project"] for row in ordered]
         rates = [row["completion_rate"] for row in ordered]
         colors = [
-            charts.POSITIVO if r >= 75 else ("#A7A7AD" if r >= 40 else charts.NEGATIVO)
+            charts.POSITIVO if r >= 75 else (charts.NEUTRO_CLARO if r >= 40 else charts.NEGATIVO)
             for r in rates
         ]
         charts.render(charts.hbar(names, rates, colors=colors, suffix="%"))

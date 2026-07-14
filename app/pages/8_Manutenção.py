@@ -29,9 +29,9 @@ ensure_demo_data_once()
 
 PRIORIDADES = {
     "urgent": ("Urgente", charts.NEGATIVO),
-    "high": ("Alta", charts.BORDO_CLARO),
-    "medium": ("Média", "#A7A7AD"),
-    "low": ("Baixa", "#6E6E76"),
+    "high": ("Alta", charts.PRIMARIA),
+    "medium": ("Média", charts.NEUTRO_CLARO),
+    "low": ("Baixa", charts.NEUTRO),
 }
 
 st.title("Manutenção")

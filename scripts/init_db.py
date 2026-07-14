@@ -1,4 +1,4 @@
-"""Create the OpsVision schema without touching data.
+"""Create the Sistema TAZZIN schema without touching data.
 
 Usage: python scripts/init_db.py [--reset]
 """

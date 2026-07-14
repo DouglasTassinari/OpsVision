@@ -7,3 +7,4 @@ data/*.db
 logs/*.log
 logs/.health_probe
 .DS_Store
+TAZZIN/

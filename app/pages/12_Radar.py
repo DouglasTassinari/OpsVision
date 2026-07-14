@@ -100,7 +100,7 @@ with c_donut:
 
 with c_rank:
     st.subheader("Quem está deixando esfriar?")
-    # Ranking por segmento (proxy do vendedor no modelo OpsVision), por % vencida.
+    # Ranking por segmento (proxy do vendedor no modelo do sistema), por % vencida.
     por_seg: dict[str, dict[str, float]] = {}
     for p in filtradas:
         d = por_seg.setdefault(p["segmento"], {"abertas": 0, "vencidas": 0})

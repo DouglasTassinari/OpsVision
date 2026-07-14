@@ -1,17 +1,17 @@
-"""Exception hierarchy shared across all OpsVision layers.
+"""Exception hierarchy shared across all Sistema TAZZIN layers.
 
 Repositories raise ``DataAccessError`` subclasses; services translate
 domain violations into ``BusinessRuleError`` subclasses. The interface
-layer only needs to catch ``OpsVisionError`` to render a friendly message.
+layer only needs to catch ``TazzinError`` to render a friendly message.
 """
 from __future__ import annotations
 
 
-class OpsVisionError(Exception):
+class TazzinError(Exception):
     """Base class for all application-raised errors."""
 
 
-class DataAccessError(OpsVisionError):
+class DataAccessError(TazzinError):
     """Raised when a repository operation cannot be completed."""
 
 
@@ -24,7 +24,7 @@ class EntityNotFoundError(DataAccessError):
         super().__init__(f"{entity_name} {entity_id!r} not found")
 
 
-class BusinessRuleError(OpsVisionError):
+class BusinessRuleError(TazzinError):
     """Raised when an operation violates a domain business rule."""
 
 

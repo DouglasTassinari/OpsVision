@@ -28,8 +28,8 @@ ensure_demo_data_once()
 META_RENDIMENTO = 95.0
 STATUS_ORDEM = {
     "completed": ("Concluídas", charts.POSITIVO),
-    "in_progress": ("Em andamento", charts.BORDO_CLARO),
-    "planned": ("Planejadas", "#A7A7AD"),
+    "in_progress": ("Em andamento", charts.PRIMARIA),
+    "planned": ("Planejadas", charts.NEUTRO),
     "cancelled": ("Canceladas", charts.NEGATIVO),
 }
 

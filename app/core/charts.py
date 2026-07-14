@@ -1,36 +1,42 @@
-"""Gráficos Plotly com o tema visual OpsVision.
+"""Gráficos Plotly com a identidade visual TAZZIN.
 
 Todos os builders devolvem figuras prontas para ``render()``: fundo
-transparente (herda o carvão do tema), fonte Poppins, separadores
-numéricos pt-BR ("1.000.000,00") e a paleta bordô da identidade.
-As cores semânticas (verde/vermelho, prioridade, severidade) existem
-para que qualquer leitor entenda o gráfico sem conhecer os dados.
+transparente (herda o azul marinho do tema), fonte Poppins, separadores
+numéricos pt-BR ("1.000.000,00") e a paleta da marca.
+
+Uma distinção que percorre o módulo: o verde da marca carrega significado
+("positivo", "dentro da meta"), então as séries sem carga semântica usam
+``PRIMARIA``, um tom claro do azul marinho. Assim o leitor entende o
+gráfico sem conhecer os dados — verde é bom, vermelho é ruim, azul é neutro.
 """
 from __future__ import annotations
 
 import plotly.graph_objects as go
 import streamlit as st
 
-from app.core.branding import BRANCO, CINZA, CINZA_CLARO
+from app.core.branding import AZUL, CINZA_CLARO, CINZA_MEDIO, GRAFITE, MARINHO, VERDE
 
-# Variações de bordô + neutros, legíveis sobre o fundo escuro.
-CATEGORICAL = ["#A83248", "#7A1E2D", "#C9647A", "#A7A7AD", "#6E6E76", "#4B0F18", "#8C8C93", "#5C1622"]
-BORDO_CLARO = "#A83248"
-POSITIVO = "#3AA76D"
-NEGATIVO = "#C4455A"
-NEUTRO = "#6E6E76"
-GRID = "#26262C"
+# Tons do azul marinho + verde da marca + neutros, todos legíveis sobre o fundo escuro.
+CATEGORICAL = ["#4A90D9", "#4CAF50", "#7FB3E3", "#6B7280", "#8FD694", "#A8B3C4", "#2E6DA4", "#C7D3E0"]
+
+PRIMARIA = AZUL          # Série neutra padrão
+POSITIVO = VERDE         # Verde da marca: dentro da meta, saudável
+NEGATIVO = "#E5484D"     # Fora da meta, vencido, prejuízo
+ATENCAO = "#F2A900"      # Estado intermediário: observar, mas ainda não é problema
+NEUTRO = CINZA_MEDIO     # Sem juízo de valor: planejado, em espera, indefinido
+NEUTRO_CLARO = "#A8B3C4"  # Segundo cinza, para quando duas categorias neutras dividem o gráfico
+GRID = "#1E3247"         # Linhas de grade: marinho um passo acima do fundo
 
 
 def _layout(fig: go.Figure, height: int = 340, **overrides) -> go.Figure:
     fig.update_layout(
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(family="Poppins, sans-serif", color=BRANCO, size=13),
+        font=dict(family="Poppins, sans-serif", color=CINZA_CLARO, size=13),
         separators=",.",
         height=height,
         margin=dict(l=10, r=10, t=30, b=10),
-        hoverlabel=dict(bgcolor=CINZA, font=dict(family="Poppins, sans-serif", color=BRANCO)),
+        hoverlabel=dict(bgcolor=GRAFITE, font=dict(family="Poppins, sans-serif", color=CINZA_CLARO)),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0, bgcolor="rgba(0,0,0,0)"),
         xaxis=dict(gridcolor=GRID, zerolinecolor=GRID, linecolor=GRID),
         yaxis=dict(gridcolor=GRID, zerolinecolor=GRID, linecolor=GRID),
@@ -48,13 +54,13 @@ def _money_axis(fig: go.Figure) -> go.Figure:
     return fig
 
 
-def area(x, y, name: str = "", money: bool = False, color: str = BORDO_CLARO) -> go.Figure:
+def area(x, y, name: str = "", money: bool = False, color: str = PRIMARIA) -> go.Figure:
     hover = "%{x} · R$ %{y:,.2f}<extra></extra>" if money else "%{x} · %{y:,.0f}<extra></extra>"
     fig = go.Figure(
         go.Scatter(
             x=list(x), y=list(y), mode="lines", name=name,
             line=dict(color=color, width=2.5),
-            fill="tozeroy", fillcolor="rgba(122,30,45,0.28)",
+            fill="tozeroy", fillcolor="rgba(74,144,217,0.24)",
             hovertemplate=hover,
         )
     )
@@ -77,7 +83,7 @@ def lines_compare(x, series: dict[str, tuple[list, str]], money: bool = False) -
 
 
 def hbar(categories, values, money: bool = False, colors=None, suffix: str = "") -> go.Figure:
-    """Ranking horizontal (maior no topo). ``colors``: cor única, lista ou None (bordô)."""
+    """Ranking horizontal (maior no topo). ``colors``: cor única, lista ou None (azul)."""
     if money:
         text, hover = "R$ %{x:,.0f}", "%{y} · R$ %{x:,.2f}<extra></extra>"
     else:
@@ -85,7 +91,7 @@ def hbar(categories, values, money: bool = False, colors=None, suffix: str = "")
     fig = go.Figure(
         go.Bar(
             x=list(values), y=list(categories), orientation="h",
-            marker_color=colors or BORDO_CLARO,
+            marker_color=colors or PRIMARIA,
             texttemplate=text, textposition="auto", textfont=dict(size=12),
             hovertemplate=hover,
         )
@@ -104,7 +110,7 @@ def donut(labels, values, colors=None, money: bool = False) -> go.Figure:
     fig = go.Figure(
         go.Pie(
             labels=list(labels), values=list(values), hole=0.58, sort=False,
-            marker=dict(colors=colors or CATEGORICAL, line=dict(color="#0F0F12", width=2)),
+            marker=dict(colors=colors or CATEGORICAL, line=dict(color=MARINHO, width=2)),
             textinfo="percent", textfont=dict(size=13, family="Poppins, sans-serif"),
             hovertemplate=hover,
         )
@@ -119,12 +125,12 @@ def gauge(value: float, max_value: float, target: float | None = None, suffix: s
             value=value,
             number=dict(suffix=suffix, font=dict(size=40, family="Poppins, sans-serif")),
             gauge=dict(
-                axis=dict(range=[0, max_value], tickcolor=CINZA_CLARO,
-                          tickfont=dict(color=CINZA_CLARO, size=11)),
-                bar=dict(color=BORDO_CLARO, thickness=0.7),
-                bgcolor=CINZA,
+                axis=dict(range=[0, max_value], tickcolor=CINZA_MEDIO,
+                          tickfont=dict(color=CINZA_MEDIO, size=11)),
+                bar=dict(color=PRIMARIA, thickness=0.7),
+                bgcolor=GRAFITE,
                 borderwidth=0,
-                threshold=dict(line=dict(color=BRANCO, width=3), thickness=0.85, value=target)
+                threshold=dict(line=dict(color=CINZA_CLARO, width=3), thickness=0.85, value=target)
                 if target is not None else None,
             ),
         )
@@ -147,7 +153,7 @@ def cashflow(months, values, money: bool = True) -> go.Figure:
     )
     fig.add_trace(
         go.Scatter(x=list(months), y=cumulative, name="Acumulado", mode="lines",
-                   line=dict(color=CINZA_CLARO, width=2, dash="dot"),
+                   line=dict(color=CINZA_MEDIO, width=2, dash="dot"),
                    hovertemplate="%{x} · R$ %{y:,.2f}<extra>Acumulado</extra>")
     )
     _layout(fig)
@@ -182,7 +188,7 @@ def treemap(parents_labels: list[tuple[str, str, float]], money: bool = False) -
         go.Treemap(
             ids=ids, labels=labels, parents=parents, values=values,
             branchvalues="total",
-            marker=dict(colors=colors, line=dict(color="#0F0F12", width=1.5)),
+            marker=dict(colors=colors, line=dict(color=MARINHO, width=1.5)),
             textfont=dict(family="Poppins, sans-serif", size=13),
             hovertemplate=hover,
         )
@@ -193,12 +199,12 @@ def treemap(parents_labels: list[tuple[str, str, float]], money: bool = False) -
 def line_with_target(x, y, target: float, target_label: str, suffix: str = "%") -> go.Figure:
     fig = go.Figure(
         go.Scatter(x=list(x), y=list(y), mode="lines+markers", name="",
-                   line=dict(color=BORDO_CLARO, width=2.5), marker=dict(size=6),
+                   line=dict(color=PRIMARIA, width=2.5), marker=dict(size=6),
                    hovertemplate=f"%{{x}} · %{{y:,.2f}}{suffix}<extra></extra>")
     )
     fig.add_hline(
-        y=target, line_dash="dash", line_color=CINZA_CLARO, line_width=1.5,
-        annotation_text=target_label, annotation_font=dict(color=CINZA_CLARO, size=12),
+        y=target, line_dash="dash", line_color=CINZA_MEDIO, line_width=1.5,
+        annotation_text=target_label, annotation_font=dict(color=CINZA_MEDIO, size=12),
     )
     return _layout(fig, showlegend=False)
 

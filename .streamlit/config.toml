@@ -1,5 +1,9 @@
-# Tema OpsVision — paleta e tipografia da identidade visual
-# (docs/identidade-visual/Identidade Visual Ops Vision.pdf)
+# Tema do Sistema TAZZIN — paleta e tipografia da identidade visual da marca
+# (docs/marca/Manual_Conceitual_de_Marca_TAZZIN_v1.pdf).
+#
+# Azul marinho no fundo (confiança, estabilidade) e o verde reservado para
+# ação e destaque (crescimento, evolução): a aplicação sobre fundo escuro
+# prevista no manual.
 
 [[theme.fontFaces]]
 family = "Poppins"
@@ -27,9 +31,9 @@ style = "normal"
 
 [theme]
 base = "dark"
-primaryColor = "#7A1E2D"          # Bordô
-backgroundColor = "#0F0F12"       # Carvão
-secondaryBackgroundColor = "#2B2B31"  # Cinza
-textColor = "#F5F5F7"             # Branco
-linkColor = "#A7A7AD"             # Cinza claro
+primaryColor = "#4CAF50"              # Verde — ação, foco, destaque
+backgroundColor = "#0D1B2A"           # Azul marinho — fundo
+secondaryBackgroundColor = "#1F2937"  # Grafite — cards, sidebar, inputs
+textColor = "#F2F4F7"                 # Cinza claro — texto
+linkColor = "#4CAF50"                 # Verde
 font = "Poppins, sans-serif"

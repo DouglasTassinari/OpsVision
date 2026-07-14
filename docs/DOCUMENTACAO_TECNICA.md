@@ -1,4 +1,4 @@
-# OpsVision — Documentação Técnica Completa
+# Sistema TAZZIN — Documentação Técnica Completa
 
 > **Plataforma de Inteligência Operacional Empresarial** — documentação de referência
 > para desenvolvedores, arquitetos e avaliadores técnicos.
@@ -28,23 +28,24 @@
 
 ## 1. Visão Geral
 
-**OpsVision** é uma plataforma de BI/operações internas de uma empresa fictícia de
-médio porte, construída do zero como **arquitetura de referência**. Ela simula o
-sistema que uma indústria usaria para acompanhar toda a operação em um só lugar:
+**Sistema TAZZIN** é a plataforma de gestão de operações industriais da marca
+TAZZIN — *menos planilhas, mais controle*. Ela cobre, em um só lugar, o que
+normalmente vive espalhado em uma planilha por departamento:
 
-- **10 módulos de negócio**: Vendas, Produção, Estoque, Compras, Financeiro,
-  Pessoas, Projetos, Manutenção, Qualidade e Administração;
-- **31 tabelas** com **~44.000 linhas sintéticas** coerentes entre si (a venda gera
+- **13 módulos de negócio** em 15 páginas: Vendas, Relacionamento, Radar de
+  Oportunidades, Produção, Usinagem, Refugo, Ajustes, Estoque, Compras,
+  Financeiro, Pessoas, Projetos, Manutenção, Qualidade e Administração;
+- **38 tabelas** com **~46.000 linhas sintéticas** coerentes entre si (a venda gera
   movimento de estoque, que gera fatura, que gera transação de caixa);
-- **153 testes automatizados** rodando em ~2 segundos contra SQLite em memória;
+- **244 testes automatizados** rodando em ~4 segundos contra SQLite em memória;
 - **Observabilidade embutida**: logging estruturado em JSON, health checks e
   registro de métricas por operação, tudo visível na página de Administração.
 
-O que este projeto **é**: uma demonstração de como estruturar uma plataforma
-multi-módulo com camadas estritas, baixo acoplamento e testabilidade real.
+O que este projeto **é**: a arquitetura de referência da plataforma — camadas
+estritas, baixo acoplamento e testabilidade real.
 
-O que este projeto **não é**: um produto em produção ou o sistema de uma empresa
-real — os dados são 100% sintéticos e gerados por script.
+O que este projeto **não é**: um retrato de dados de nenhuma empresa real — o
+dataset é 100% sintético e gerado por script.
 
 Quem chega pela primeira vez deve começar por: `README.md` → este documento →
 [`docs/ARCHITECTURE.md`](ARCHITECTURE.md) → o código do módulo de Vendas
@@ -138,7 +139,7 @@ módulos se reduz a um **contrato de IDs**.
 ## 3. Estrutura de Pastas
 
 ```
-OpsVision/
+OpsVision/                    # o repo ainda usa o nome anterior
 ├── app/                      # todo o código da aplicação
 │   ├── core/                 # transversal: config, logging, exceções, métricas, health, bootstrap
 │   ├── database/             # engine, sessão e models (1 arquivo por módulo)
@@ -238,17 +239,17 @@ session_scope() → commit (ou rollback se ValidationError subiu)
 
 A transição de status (`DRAFT → CONFIRMED → SHIPPED → INVOICED`) passa por
 `assert_transition(atual, alvo)`; transição inválida lança `ValidationError`,
-que herda de `OpsVisionError` — a interface só precisa capturar a base da
+que herda de `TazzinError` — a interface só precisa capturar a base da
 hierarquia para exibir mensagem amigável, independentemente da camada de origem.
 
 ### 4.3 Fluxo de erro
 
 ```mermaid
 flowchart LR
-    A[Repository] -->|"EntityNotFoundError<br/>(id inexistente)"| D[OpsVisionError]
+    A[Repository] -->|"EntityNotFoundError<br/>(id inexistente)"| D[TazzinError]
     B[Domain] -->|"ValidationError<br/>(regra violada)"| D
     C[Service] -->|"BusinessRuleError"| D
-    D -->|"except OpsVisionError"| E[Interface exibe<br/>mensagem amigável]
+    D -->|"except TazzinError"| E[Interface exibe<br/>mensagem amigável]
 ```
 
 ---
@@ -298,28 +299,28 @@ biblioteca compartilhada entre projetos (ver §12):
 ### 6.1 `app/core/config.py` — Configuração centralizada
 
 `Settings` é um `dataclass(frozen=True)` populado por variáveis de ambiente
-(`OPSVISION_DATABASE_URL`, `OPSVISION_ENV`, `OPSVISION_LOG_LEVEL`,
-`OPSVISION_LOG_FORMAT`) com defaults de demo zero-config. Nenhum outro arquivo
+(`TAZZIN_DATABASE_URL`, `TAZZIN_ENV`, `TAZZIN_LOG_LEVEL`,
+`TAZZIN_LOG_FORMAT`) com defaults de demo zero-config. Nenhum outro arquivo
 lê `os.environ`. Trocar SQLite por PostgreSQL é alterar **uma** variável.
 
 ### 6.2 `app/core/logging.py` — Logging estruturado
 
-- `get_logger(name)` devolve logger com namespace `opsvision.<name>`;
+- `get_logger(name)` devolve logger com namespace `tazzin.<name>`;
 - Formato JSON por linha (machine-parseable) ou texto, escolhido por env var;
-- Saída dupla: stdout + `logs/opsvision.log` rotativo (5 MB × 3 backups);
+- Saída dupla: stdout + `logs/tazzin.log` rotativo (5 MB × 3 backups);
 - Bônus: `timed_block`, context manager que loga a duração de um bloco.
 
 ### 6.3 `app/core/exceptions.py` — Hierarquia de exceções
 
 ```
-OpsVisionError
+TazzinError
 ├── DataAccessError
 │   └── EntityNotFoundError   (carrega entity_name + entity_id)
 └── BusinessRuleError
     └── ValidationError
 ```
 
-A interface captura apenas `OpsVisionError`; a granularidade existe para quem
+A interface captura apenas `TazzinError`; a granularidade existe para quem
 precisa distinguir "não achei" de "não é permitido".
 
 ### 6.4 `app/core/metrics.py` — Métricas em processo
@@ -535,7 +536,7 @@ Escolhas de realismo dignas de nota (detalhes em [`DATA_GENERATION.md`](DATA_GEN
 ### 8.2 Percurso runtime: do banco à tela
 
 ```
-generate_synthetic_data.py ──grava──▶ data/opsvision.db (SQLite)
+generate_synthetic_data.py ──grava──▶ data/tazzin.db (SQLite)
                                           │
                                           ▼
                             Repository (select + agregação SQL)
@@ -684,8 +685,11 @@ internacional com a interface em inglês e o público local em português.
 
 ### 10.12 Nomenclatura do repositório
 
-A pasta local chama-se `OpsVision2`, o remoto `OpsVision`, e o pacote
-`opsvision`. Padronizar evita confusão em clones e paths de CI.
+O produto e o pacote já são `tazzin`, mas o repositório ainda carrega o nome
+anterior: a pasta local chama-se `OpsVision2`, o remoto `OpsVision`, e o
+deploy responde em `opsvision.streamlit.app`. Renomear o repositório exige
+reapontar o app no painel do Streamlit Community Cloud — por isso ficou de
+fora do rebranding. Padronizar evita confusão em clones e paths de CI.
 
 ---
 
@@ -727,14 +731,14 @@ A pasta local chama-se `OpsVision2`, o remoto `OpsVision`, e o pacote
 
 ## 12. Conexão com Outros Projetos
 
-O OpsVision foi desenhado com fronteiras que tornam partes dele **extraíveis**.
+O Sistema TAZZIN foi desenhado com fronteiras que tornam partes dele **extraíveis**.
 Oportunidades concretas de integração com o ecossistema do autor (portfólio,
 Jornada Brasil e projetos futuros):
 
 ### 12.1 Pacote compartilhado `core` (a oportunidade nº 1)
 
 Tudo em `app/core/` + `repositories/base.py` é agnóstico de negócio.
-Extraído como pacote (ex.: `dtassinari-core` ou `opsvision-core`), qualquer
+Extraído como pacote (ex.: `dtassinari-core` ou `tazzin-core`), qualquer
 projeto Python do autor ganharia de graça:
 
 | Componente | O que outros projetos ganham |
@@ -759,7 +763,7 @@ diferencia sênior de pleno em avaliação técnica.
   "Como estruturei um monolito modular em Python" — conteúdo técnico de
   portfólio com muito mais alcance que o repositório sozinho;
 - **API como vitrine**: a futura camada FastAPI (§11) permite que o site do
-  portfólio consuma KPIs reais do OpsVision e os exiba como widgets.
+  portfólio consuma KPIs reais do Sistema TAZZIN e os exiba como widgets.
 
 ### 12.3 Jornada Brasil e outras plataformas
 
@@ -782,7 +786,7 @@ Sem acesso ao código desses projetos, as conexões de maior probabilidade são:
 
 | Integração | Caminho técnico já preparado |
 |---|---|
-| BI externo (Metabase/Superset) | Apontar para o mesmo PostgreSQL via `OPSVISION_DATABASE_URL` |
+| BI externo (Metabase/Superset) | Apontar para o mesmo PostgreSQL via `TAZZIN_DATABASE_URL` |
 | Monitoramento (UptimeRobot, cron) | `scripts/run_health_check.py` já retorna exit code |
 | Prometheus/Grafana | `MetricsRegistry.snapshot()` já tem o shape certo para um exporter |
 | Consumidores de API | Services já isolados — a camada FastAPI é aditiva, sem refatoração |
@@ -812,7 +816,7 @@ Sem acesso ao código desses projetos, as conexões de maior probabilidade são:
 | Sem demo pública linkada | O bootstrap para cloud existe, mas não há link de demo |
 | Sem *About*/topics no repositório | Descoberta e primeira impressão prejudicadas |
 | Sem templates de issue/PR | Sinaliza projeto não preparado para colaboração |
-| Nome divergente (OpsVision2 local vs OpsVision remoto) | Fricção pequena, mas evitável |
+| Nome divergente (Sistema TAZZIN2 local vs Sistema TAZZIN remoto) | Fricção pequena, mas evitável |
 
 ### 13.2 README — melhorias específicas
 
@@ -866,7 +870,7 @@ pública de qualidade.
   `modular-monolith`, `business-intelligence`, `portfolio-project`;
 - Ativar **branch protection** em `main` (CI verde obrigatório) — mesmo em
   projeto solo, sinaliza disciplina;
-- Renomear a pasta local para `OpsVision` (alinhar com o remoto);
+- Renomear a pasta local para `Sistema TAZZIN` (alinhar com o remoto);
 - Nomes de arquivo com acentos (`10_Administração.py`, `2_Produção.py`)
   funcionam, mas já causaram escaping no git (`"Administra\303\247\303\243o"`).
   Se a interface adotar i18n (§10.11), aproveitar para usar nomes ASCII com
@@ -879,7 +883,7 @@ pública de qualidade.
 
 ### Nível técnico
 
-O OpsVision está claramente **acima do padrão de projeto de portfólio**. Não é
+O Sistema TAZZIN está claramente **acima do padrão de projeto de portfólio**. Não é
 um CRUD com telas: é um monolito modular com cinco camadas de responsabilidade
 bem separadas, fronteiras de módulo impostas por convenção documentada (contrato
 de IDs, sem ORM cross-module), 153 testes que exercitam SQL real em vez de

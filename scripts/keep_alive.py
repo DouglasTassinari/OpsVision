@@ -43,7 +43,7 @@ def main() -> int:
         content = page.content().lower()
         browser.close()
 
-        if "opsvision" in content or "stapp" in content or "streamlit" in content:
+        if "tazzin" in content or "stapp" in content or "streamlit" in content:
             print("Sessão concluída — app respondendo.")
             return 0
         print("Página carregou, mas o conteúdo do app não foi identificado.")

@@ -29,7 +29,7 @@ ensure_demo_data_once()
 DIRECOES = {"receivable": "A receber", "payable": "A pagar"}
 STATUS_FATURA = {
     "paid": ("Pagas", charts.POSITIVO),
-    "open": ("Abertas", "#A7A7AD"),
+    "open": ("Abertas", charts.NEUTRO),
     "overdue": ("Vencidas", charts.NEGATIVO),
 }
 

@@ -30,7 +30,7 @@ Options:
 - `--seed <int>` — random seed, default `42`. Same seed → same dataset.
 - `--reset` — drop and recreate all tables first.
 
-This creates `data/opsvision.db` (SQLite) with ~44,000 rows across 31
+This creates `data/tazzin.db` (SQLite) with ~46,000 rows across 38
 tables, dated from 2023-01-01 to today. See
 [`DATA_GENERATION.md`](DATA_GENERATION.md) for what gets generated and in
 what order.
@@ -73,18 +73,18 @@ a real deployment.
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `OPSVISION_DATABASE_URL` | `sqlite:///data/opsvision.db` | Any SQLAlchemy connection string, e.g. `postgresql://user:pass@host/opsvision` |
-| `OPSVISION_ENV` | `development` | Free-text environment label |
-| `OPSVISION_LOG_LEVEL` | `INFO` | Standard logging levels |
-| `OPSVISION_LOG_FORMAT` | `json` | `json` or `text` |
+| `TAZZIN_DATABASE_URL` | `sqlite:///data/tazzin.db` | Any SQLAlchemy connection string, e.g. `postgresql://user:pass@host/tazzin` |
+| `TAZZIN_ENV` | `development` | Free-text environment label |
+| `TAZZIN_LOG_LEVEL` | `INFO` | Standard logging levels |
+| `TAZZIN_LOG_FORMAT` | `json` | `json` or `text` |
 
 Example, running against PostgreSQL instead of the bundled SQLite file:
 
 ```bash
-export OPSVISION_DATABASE_URL="postgresql://opsvision:password@localhost/opsvision"
+export TAZZIN_DATABASE_URL="postgresql://tazzin:password@localhost/tazzin"
 python scripts/generate_synthetic_data.py --reset
 streamlit run app/main.py
 ```
 
 No code changes are needed to switch backends — `app/database/base.py`
-builds the engine from `OPSVISION_DATABASE_URL` alone.
+builds the engine from `TAZZIN_DATABASE_URL` alone.

@@ -30,7 +30,7 @@ ensure_demo_data_once()
 
 SEGMENTOS = {"retail": "Varejo", "wholesale": "Atacado", "enterprise": "Corporativo"}
 _ORDEM_STATUS = ["Dentro do prazo", "Atenção", "Vencido"]
-_COR_STATUS = {"Dentro do prazo": charts.POSITIVO, "Atenção": "#FFD966", "Vencido": charts.NEGATIVO}
+_COR_STATUS = {"Dentro do prazo": charts.POSITIVO, "Atenção": charts.ATENCAO, "Vencido": charts.NEGATIVO}
 
 st.title("Relacionamento com Cliente")
 st.caption(
@@ -96,7 +96,7 @@ with c_donut:
     )
     st.caption("Quanto mais verde, mais da carteira está sendo acompanhada no prazo.")
 
-# --- Cobertura por segmento (proxy do vendedor no modelo OpsVision) ---------
+# --- Cobertura por segmento (proxy do vendedor no modelo do sistema) ---------
 st.subheader("Onde mora o risco?")
 por_seg: dict[str, dict[str, int]] = {}
 for c in filtrada:
@@ -109,7 +109,7 @@ charts.render(
         labels,
         {
             "Dentro do prazo": ([por_seg[s]["Dentro do prazo"] for s in segs], charts.POSITIVO),
-            "Atenção": ([por_seg[s]["Atenção"] for s in segs], "#FFD966"),
+            "Atenção": ([por_seg[s]["Atenção"] for s in segs], charts.ATENCAO),
             "Vencido": ([por_seg[s]["Vencido"] for s in segs], charts.NEGATIVO),
         },
     )

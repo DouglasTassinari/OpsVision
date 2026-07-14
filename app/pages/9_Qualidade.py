@@ -29,8 +29,8 @@ META_DEFEITOS = 2.0
 META_APROVACAO = 95.0
 SEVERIDADES = {
     "critical": ("Crítica", charts.NEGATIVO),
-    "major": ("Alta", charts.BORDO_CLARO),
-    "minor": ("Menor", "#A7A7AD"),
+    "major": ("Alta", charts.ATENCAO),
+    "minor": ("Menor", charts.NEUTRO),
 }
 
 st.title("Qualidade")

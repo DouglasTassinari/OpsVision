@@ -1,4 +1,4 @@
-"""OpsVision entrypoint: registra as páginas e roteia a navegação.
+"""Sistema TAZZIN entrypoint: registra as páginas e roteia a navegação.
 
 Execute via ``streamlit run app/main.py``. Os títulos exibidos na
 navegação vêm daqui (st.Page), não dos nomes dos arquivos — o que

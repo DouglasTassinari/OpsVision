@@ -2,7 +2,7 @@
 
 ## Layers
 
-OpsVision follows a strict one-way layered architecture:
+Sistema TAZZIN follows a strict one-way layered architecture:
 
 ```
 Interface (Streamlit pages)
@@ -71,16 +71,16 @@ of its own. Every other service only calls its own module's repositories.
 ## Cross-cutting concerns (`app/core/`)
 
 - **`config.py`** — a single frozen `Settings` dataclass sourced from
-  environment variables (`OPSVISION_DATABASE_URL`, `OPSVISION_ENV`,
-  `OPSVISION_LOG_LEVEL`, `OPSVISION_LOG_FORMAT`). No module reads
+  environment variables (`TAZZIN_DATABASE_URL`, `TAZZIN_ENV`,
+  `TAZZIN_LOG_LEVEL`, `TAZZIN_LOG_FORMAT`). No module reads
   `os.environ` directly outside this file.
 - **`logging.py`** — every module calls `get_logger(__name__)`; logs are
   JSON-formatted by default, written to both stdout and a rotating file
   under `logs/`.
-- **`exceptions.py`** — a small hierarchy (`OpsVisionError` →
+- **`exceptions.py`** — a small hierarchy (`TazzinError` →
   `DataAccessError` / `BusinessRuleError` → `EntityNotFoundError` /
   `ValidationError`) so the interface layer only needs to catch
-  `OpsVisionError` to render a friendly message, regardless of which
+  `TazzinError` to render a friendly message, regardless of which
   layer raised it.
 - **`health.py`** — `run_health_checks()` probes the database connection
   and log-directory writability; used by both the Administration page and
@@ -96,8 +96,8 @@ of its own. Every other service only calls its own module's repositories.
 - SQLAlchemy 2.0 declarative models (`Mapped[...]` / `mapped_column`
   style) with one `Base` shared across all 31 tables
   (`app/database/base.py`).
-- SQLite by default (zero-config demo, file at `data/opsvision.db`);
-  set `OPSVISION_DATABASE_URL` to point at PostgreSQL or any other
+- SQLite by default (zero-config demo, file at `data/tazzin.db`);
+  set `TAZZIN_DATABASE_URL` to point at PostgreSQL or any other
   SQLAlchemy-supported backend for a production deployment — no code
   changes required, only the connection string.
 - `app/repositories/base.py` provides `BaseRepository[ModelT]` (get,

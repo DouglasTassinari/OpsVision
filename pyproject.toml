@@ -1,5 +1,5 @@
 [project]
-name = "opsvision"
+name = "tazzin"
 version = "1.0.0"
 description = "Enterprise Operations Intelligence Platform — a layered, multi-module business platform built as a portfolio reference architecture."
 requires-python = ">=3.11"

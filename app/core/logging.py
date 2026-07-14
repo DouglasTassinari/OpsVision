@@ -1,4 +1,4 @@
-"""Structured logging setup for OpsVision.
+"""Structured logging setup for the Sistema TAZZIN.
 
 Every module calls :func:`get_logger` instead of touching the standard
 ``logging`` module directly, so log destination/format stays centralized.
@@ -37,7 +37,7 @@ def _configure_root() -> None:
         return
 
     settings.log_dir.mkdir(parents=True, exist_ok=True)
-    root = logging.getLogger("opsvision")
+    root = logging.getLogger("tazzin")
     root.setLevel(settings.log_level)
     root.propagate = False
 
@@ -52,7 +52,7 @@ def _configure_root() -> None:
     root.addHandler(console_handler)
 
     file_handler = RotatingFileHandler(
-        settings.log_dir / "opsvision.log", maxBytes=5_000_000, backupCount=3, encoding="utf-8"
+        settings.log_dir / "tazzin.log", maxBytes=5_000_000, backupCount=3, encoding="utf-8"
     )
     file_handler.setFormatter(formatter)
     root.addHandler(file_handler)
@@ -63,7 +63,7 @@ def _configure_root() -> None:
 def get_logger(name: str) -> logging.Logger:
     """Return a namespaced logger (e.g. ``get_logger(__name__)``)."""
     _configure_root()
-    return logging.getLogger(f"opsvision.{name}")
+    return logging.getLogger(f"tazzin.{name}")
 
 
 class timed_block:

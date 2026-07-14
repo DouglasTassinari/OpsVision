@@ -17,7 +17,7 @@ import streamlit as st
 
 from app.core import charts
 from app.core.bootstrap import ensure_demo_data_once
-from app.core.branding import LOGO_FULL, apply_branding
+from app.core.branding import LOGO_WORDMARK, apply_branding
 from app.core.formatting import format_brl
 from app.database.base import session_scope
 from app.services.analytics_service import AnalyticsService
@@ -26,7 +26,10 @@ apply_branding("Início")
 
 ensure_demo_data_once()
 
-st.image(LOGO_FULL, width=180)
+# Wordmark sem o slogan: reduzido para caber aqui, o slogan do lockup completo
+# fica ilegível. Ele aparece abaixo como texto, no tamanho certo.
+st.image(LOGO_WORDMARK, width=220)
+st.caption("Menos planilhas. Mais controle.")
 
 col1, col2 = st.columns(2)
 default_start = date.today() - timedelta(days=365)
@@ -101,13 +104,13 @@ with chart_col1:
             charts.lines_compare(
                 months,
                 {
-                    "Receita": ([revenue_by_month.get(m, 0) for m in months], charts.BORDO_CLARO),
+                    "Receita": ([revenue_by_month.get(m, 0) for m in months], charts.PRIMARIA),
                     "Gastos": ([spend_by_month.get(m, 0) for m in months], charts.NEUTRO),
                 },
                 money=True,
             )
         )
-        st.caption("Quando a linha bordô (Receita) corre acima da cinza (Gastos), o mês gerou lucro.")
+        st.caption("Quando a linha azul (Receita) corre acima da cinza (Gastos), o mês gerou lucro.")
 
 with chart_col2:
     st.subheader("O caixa está saudável?")

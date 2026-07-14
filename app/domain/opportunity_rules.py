@@ -15,10 +15,10 @@ from datetime import date
 QUENTE_ATE, MORNA_ATE, FRIA_ATE = 10, 20, 30
 
 _CORES: dict[str, str] = {
-    "Quente": "#3AA76D",   # 🔥 fresca, acompanhar é fácil
-    "Morna": "#FFD966",    # 🟡 começando a esfriar
-    "Fria": "#F4B183",     # 🧊 21–30 dias, risco
-    "Vencida": "#C4455A",  # 🔴 pior caso: > 30 dias ou sem data
+    "Quente": "#4CAF50",   # 🔥 fresca, acompanhar é fácil
+    "Morna": "#F2A900",    # 🟡 começando a esfriar
+    "Fria": "#E8833A",     # 🧊 21–30 dias, risco
+    "Vencida": "#E5484D",  # 🔴 pior caso: > 30 dias ou sem data
 }
 
 # Ordem de prioridade na tela: vencidas no topo.
