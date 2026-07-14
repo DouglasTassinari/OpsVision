@@ -7,6 +7,7 @@ before calling ``Base.metadata.create_all``.
 from app.database.models import (  # noqa: F401
     adjustments,
     administration,
+    compensation,
     core,
     finance,
     inventory,

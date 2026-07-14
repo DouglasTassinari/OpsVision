@@ -88,11 +88,18 @@ from app.database.models.machining import (
 )
 from app.database.models.scrap import ScrapPart, ScrapRecord
 from app.database.models.adjustments import TimeAdjustment
+from app.database.models.compensation import (
+    Placement,
+    Position,
+    PositionLevel,
+    SeniorityBand,
+    UnionFloor,
+)
 
 # Bump whenever the generated dataset changes shape (volumes, salaries,
 # accounting rules...): deployments with a database seeded by an older
 # version reseed automatically on boot (see app/core/bootstrap.py).
-DATASET_VERSION = 5
+DATASET_VERSION = 6
 
 DATASET_START = date(2023, 1, 1)
 DATASET_END = date.today()
@@ -650,6 +657,108 @@ def generate_time_off(session, fake: Faker, employees, count: int = 650):
     return requests
 
 
+# Grade sintética de cargos: um cargo por departamento. Os VALORES são fictícios
+# (premissa do TAZZIN: nenhum dado salarial real no repositório); as REGRAS,
+# faixas e o corte 01/05 do dissídio são idênticos ao módulo de origem.
+_POSITION_BLUEPRINT = {
+    "SALES": ("Vendas", True), "MFG": ("Produção", True), "LOG": ("Logística", False),
+    "PROC": ("Suprimentos", False), "FIN": ("Financeiro", False), "HR": ("Recursos Humanos", False),
+    "PMO": ("Projetos", True), "FAC": ("Manutenção", False), "QA": ("Qualidade", True),
+    "IT": ("TI e Administração", False),
+}
+# Piso do sindicato por ano (fictício, ~6%/ano). Cobre os aniversários possíveis
+# (janela de admissão desde 2018). O corte 01/05 é aplicado pela regra pura.
+_SYNTHETIC_FLOORS = {
+    2019: 1700.00, 2020: 1800.00, 2021: 1908.00, 2022: 2022.00,
+    2023: 2140.00, 2024: 2270.00, 2025: 2405.00, 2026: 2549.00,
+}
+_SENIORITY_BANDS = [(2, 5), (5, 7), (10, 10), (15, 12), (20, 15)]  # (anos, % sobre o piso)
+
+
+def generate_compensation(session, departments, employees):
+    """Seed do módulo Cargos e Salários: pisos, faixas de tempo de casa, cargos/níveis
+    e o enquadramento decomposto de cada colaborador ativo.
+
+    Deriva a grade dos próprios funcionários sintéticos: por departamento, os ativos
+    são divididos em três níveis por faixa salarial; a base de cada nível é fixada
+    abaixo dos ocupantes para que ``base + avaliação + tempo de casa`` reconstrua o
+    salário atual (adicional de avaliação sempre positivo).
+    """
+    from decimal import ROUND_HALF_UP, Decimal
+
+    from app.domain import compensation_rules as rules
+
+    def _r2(value) -> Decimal:
+        return Decimal(str(value)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+    floors_dec = {year: Decimal(str(value)) for year, value in _SYNTHETIC_FLOORS.items()}
+    bands_tuple = tuple((anos, Decimal(str(pct))) for anos, pct in _SENIORITY_BANDS)
+    today = DATASET_END
+
+    session.add_all(
+        [UnionFloor(year=y, value=v, note="Piso sindical (sintético)") for y, v in _SYNTHETIC_FLOORS.items()]
+    )
+    session.add_all(
+        [
+            SeniorityBand(position_id=None, min_months=anos * 12, percent=pct, note="Tempo de casa")
+            for anos, pct in _SENIORITY_BANDS
+        ]
+    )
+
+    active_by_dept: dict[int, list] = {}
+    for emp in employees:
+        if emp.employment_status == EmploymentStatus.ACTIVE:
+            active_by_dept.setdefault(emp.department_id, []).append(emp)
+
+    placements: list[Placement] = []
+    for dept in departments:
+        name, has_leadership = _POSITION_BLUEPRINT.get(dept.code, (dept.name, False))
+        position = Position(
+            name=name, area=dept.name, code=f"CG-{dept.code}",
+            has_leadership=has_leadership, has_levels=True, status="active",
+        )
+        session.add(position)
+        session.flush()  # id
+
+        roster = sorted(active_by_dept.get(dept.id, []), key=lambda e: float(e.base_salary))
+        # três níveis por faixa salarial (terços); níveis sem ocupante ficam "a definir".
+        n = len(roster)
+        cut1, cut2 = n // 3, (2 * n) // 3
+        tiers = [roster[:cut1], roster[cut1:cut2], roster[cut2:]]
+
+        for order, tier in enumerate(tiers, start=1):
+            base = None
+            if tier:
+                adjusted = []
+                seniorities = {}
+                for emp in tier:
+                    sen = rules.seniority_addon(emp.hire_date, today, floors_dec, bands_tuple)
+                    seniorities[emp.id] = sen
+                    adjusted.append(Decimal(str(emp.base_salary)) - sen)
+                base = _r2(Decimal("0.90") * min(adjusted))
+
+            level = PositionLevel(
+                position_id=position.id, name=f"Nível {order}",
+                description=None, base_salary=base, display_order=order, status="active",
+            )
+            session.add(level)
+            session.flush()  # id
+
+            for emp in tier:
+                sen = seniorities[emp.id]
+                evaluation = max(Decimal("0.00"), _r2(Decimal(str(emp.base_salary)) - base - sen))
+                placements.append(
+                    Placement(
+                        employee_id=emp.id, position_id=position.id, level_id=level.id,
+                        evaluation_addon=evaluation, comment=None,
+                    )
+                )
+
+    session.add_all(placements)
+    session.flush()
+    return placements
+
+
 def generate_projects(session, fake: Faker, departments, employees, count: int = 42):
     status_weights = {ProjectStatus.PLANNING: 0.15, ProjectStatus.ACTIVE: 0.35, ProjectStatus.ON_HOLD: 0.1, ProjectStatus.COMPLETED: 0.35, ProjectStatus.CANCELLED: 0.05}
     task_status_weights = {TaskStatus.TODO: 0.2, TaskStatus.IN_PROGRESS: 0.2, TaskStatus.BLOCKED: 0.1, TaskStatus.DONE: 0.5}
@@ -1013,6 +1122,8 @@ def run(seed: int = 42, reset: bool = False) -> None:
         generate_finance(session, sales_orders, purchase_orders, employees)
         print("Generating HR activity...")
         generate_time_off(session, fake, employees)
+        print("Generating compensation (cargos e salários) data...")
+        generate_compensation(session, departments, employees)
         print("Generating projects...")
         generate_projects(session, fake, departments, employees)
         print("Generating maintenance activity...")
