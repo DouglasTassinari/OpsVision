@@ -91,6 +91,46 @@ class AppointmentRepository(BaseRepository[Appointment]):
             for name, eff, qty in rows
         ]
 
+    def operator_activity(
+        self, start: date, end: date
+    ) -> list[tuple[int, str, str, str, int, float, int]]:
+        """Per (operator, occurrence type) activity in the period.
+
+        Devolve tuplas ``(operator_id, operator_name, description, category,
+        appt_count, total_minutes, total_pieces)`` — o material bruto do painel
+        Operadores. A ``category`` (produção/setup/improdutivo) vem do tipo de
+        ocorrência; a ``description`` é usada na camada de domínio para separar
+        "Sem Peça" (espera de material) do improdutivo e para ler o tempo
+        padrão embutido no rótulo do setup ("Setup 1h30" → 90 min).
+        """
+        stmt = (
+            select(
+                Operator.id,
+                Operator.name,
+                OccurrenceType.description,
+                OccurrenceType.category,
+                func.count(Appointment.id).label("appt_count"),
+                func.sum(Appointment.duration_minutes).label("minutes"),
+                func.sum(Appointment.quantity).label("pieces"),
+            )
+            .join(Operator, Operator.id == Appointment.operator_id)
+            .join(OccurrenceType, OccurrenceType.id == Appointment.occurrence_type_id)
+            .where(
+                Appointment.appointment_date >= start,
+                Appointment.appointment_date <= end,
+            )
+            .group_by(Operator.id, OccurrenceType.id)
+        )
+        rows = self.session.execute(stmt).all()
+        return [
+            (
+                int(oid), name, desc,
+                cat.value if hasattr(cat, "value") else str(cat),
+                int(cnt or 0), float(mins or 0), int(pcs or 0),
+            )
+            for oid, name, desc, cat, cnt, mins, pcs in rows
+        ]
+
     def time_by_category(self, start: date, end: date) -> list[tuple[str, float]]:
         """(category_value, total_hours) grouped by occurrence category."""
         stmt = (

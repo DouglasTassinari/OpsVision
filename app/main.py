@@ -56,6 +56,12 @@ modulos = {
             icon=":material/precision_manufacturing:",
             url_path="usinagem",
         ),
+        st.Page(
+            "pages/17_Operadores.py",
+            title="Operadores",
+            icon=":material/engineering:",
+            url_path="operadores",
+        ),
         st.Page("pages/14_Refugo.py", title="Refugo", icon=":material/recycling:", url_path="refugo"),
         st.Page("pages/15_Ajustes.py", title="Ajustes", icon=":material/tune:", url_path="ajustes"),
         st.Page("pages/8_Manutenção.py", title="Manutenção", icon=":material/build:", url_path="manutencao"),

@@ -91,6 +91,29 @@ class ScrapRecordRepository(BaseRepository[ScrapRecord]):
         )
         return [(name, int(q or 0)) for name, q in self.session.execute(stmt).all()]
 
+    def usinagem_by_operator(self, start: date, end: date) -> list[tuple[str, int]]:
+        """(operator_name, qty) só de refugo por **erro de usinagem**.
+
+        O painel Operadores responsabiliza o operador apenas pelo refugo cuja
+        causa raiz é a própria usinagem (``Dimensional Errado Usinagem``);
+        defeito de fundição/fornecedor não entra na conta dele.
+        """
+        stmt = (
+            select(
+                Operator.name,
+                func.sum(ScrapRecord.total_quantity).label("qty"),
+            )
+            .join(Operator, Operator.id == ScrapRecord.operator_id)
+            .where(
+                ScrapRecord.record_date >= start,
+                ScrapRecord.record_date <= end,
+                ScrapRecord.active.is_(True),
+                ScrapRecord.reason_1 == "Dimensional Errado Usinagem",
+            )
+            .group_by(Operator.id)
+        )
+        return [(name, int(q or 0)) for name, q in self.session.execute(stmt).all()]
+
     def by_supplier(self, start: date, end: date) -> list[tuple[str, int]]:
         stmt = (
             select(
